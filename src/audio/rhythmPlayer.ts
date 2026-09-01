@@ -23,7 +23,7 @@ export class RhythmPlayer {
   async prepare(): Promise<void> {
     this.context ??= new AudioContext()
     if (!this.snareBuffer) {
-      const response = await fetch('/audio/snare.wav')
+      const response = await fetch(`${import.meta.env.BASE_URL}audio/snare.wav`)
       this.snareBuffer = await this.context.decodeAudioData(await response.arrayBuffer())
     }
   }

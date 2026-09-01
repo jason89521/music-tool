@@ -16,16 +16,18 @@ import { loadState, saveState } from './storage'
 const ScoreView = lazy(() => import('./components/ScoreView').then((module) => ({ default: module.ScoreView })))
 
 type PlaybackStatus = 'idle' | 'playing' | 'paused'
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 function usePathname(): [string, (path: string) => void] {
-  const [pathname, setPathname] = useState(window.location.pathname)
+  const currentPath = () => window.location.pathname.slice(basePath.length) || '/'
+  const [pathname, setPathname] = useState(currentPath)
   useEffect(() => {
-    const onPopState = () => setPathname(window.location.pathname)
+    const onPopState = () => setPathname(currentPath())
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
   const navigate = (path: string) => {
-    window.history.pushState({}, '', path)
+    window.history.pushState({}, '', `${basePath}${path}`)
     setPathname(path)
     window.scrollTo({ top: 0 })
   }
