@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generateRhythm } from '../domain/generateRhythm'
-import { toMusicXml } from './toMusicXml'
+import { scoreEventIndex, toMusicXml } from './toMusicXml'
 import type { RhythmExercise } from '../domain/rhythm'
 
 describe('toMusicXml', () => {
@@ -43,6 +43,31 @@ describe('toMusicXml', () => {
     expect(xml).toContain('<normal-type>quarter</normal-type>')
     expect(xml.match(/<tuplet type="start"/g)).toHaveLength(2)
     expect(xml.match(/<tuplet type="stop"/g)).toHaveLength(2)
+  })
+
+  it('merges a dotted quarter rest followed by an eighth rest into a half rest', () => {
+    const exercise: RhythmExercise = {
+      version: 1,
+      timeSignature: { beats: 4, beatType: 4 },
+      measures: [{
+        index: 0,
+        events: [
+          { id: 'note', measureIndex: 0, startTick: 0, durationTicks: 24, value: 'quarter', rest: false, dotted: false, triplet: false, tieStart: false, tieStop: false },
+          { id: 'dotted-rest', measureIndex: 0, startTick: 24, durationTicks: 36, value: 'quarter', rest: true, dotted: true, triplet: false, tieStart: false, tieStop: false },
+          { id: 'eighth-rest', measureIndex: 0, startTick: 60, durationTicks: 12, value: 'eighth', rest: true, dotted: false, triplet: false, tieStart: false, tieStop: false },
+          { id: 'last', measureIndex: 0, startTick: 72, durationTicks: 24, value: 'quarter', rest: false, dotted: false, triplet: false, tieStart: false, tieStop: false },
+        ],
+      }],
+    }
+
+    const xml = toMusicXml(exercise)
+
+    expect(xml.match(/<rest\/>/g)).toHaveLength(1)
+    expect(xml).toMatch(/id="dotted-rest"[\s\S]*<duration>48<\/duration>[\s\S]*<type>half<\/type>/)
+    expect(xml).not.toMatch(/id="dotted-rest"[\s\S]*<dot\/>/)
+    expect(scoreEventIndex(exercise, 1)).toBe(1)
+    expect(scoreEventIndex(exercise, 2)).toBe(1)
+    expect(scoreEventIndex(exercise, 3)).toBe(2)
   })
 
   it('starts a new system after every four measures on wide screens', () => {

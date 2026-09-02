@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay'
 import type { RhythmExercise } from '../domain/rhythm'
-import { toMusicXml } from '../score/toMusicXml'
+import { scoreEventIndex, toMusicXml } from '../score/toMusicXml'
 import { moveCursorToEvent } from './cursorNavigation'
 
 type ScoreViewProps = {
@@ -76,17 +76,18 @@ export function ScoreView({ exercise, activeEventIndex, reduceMotion }: ScoreVie
   useEffect(() => {
     const osmd = osmdRef.current
     if (!osmd || !osmd.cursor) return
-    moveCursorToEvent(osmd.cursor, activeEventIndex)
+    const visibleEventIndex = scoreEventIndex(exercise, activeEventIndex)
+    moveCursorToEvent(osmd.cursor, visibleEventIndex)
     cursorIndexRef.current = -1
-    if (activeEventIndex < 0) return
-    cursorIndexRef.current = activeEventIndex
+    if (visibleEventIndex < 0) return
+    cursorIndexRef.current = visibleEventIndex
     const cursorElement = hostRef.current?.querySelector<HTMLElement>('#cursorImg-0')
     cursorElement?.scrollIntoView({
       behavior: reduceMotion ? 'auto' : 'smooth',
       block: 'center',
       inline: 'center',
     })
-  }, [activeEventIndex, reduceMotion])
+  }, [activeEventIndex, exercise, reduceMotion])
 
   return (
     <section className="score-card" aria-label="節奏樂譜">
