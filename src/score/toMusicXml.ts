@@ -1,15 +1,17 @@
-import { TICKS_PER_QUARTER, type RhythmEvent, type RhythmExercise } from '../domain/rhythm'
+import { TICKS_PER_MEASURE, TICKS_PER_QUARTER, type RhythmEvent, type RhythmExercise } from '../domain/rhythm'
 
 type ScoreEvent = RhythmEvent & {
-  sourceEventCount: number
+  sourceEventIndexes: number[]
   notationType?: 'whole' | 'half' | 'quarter' | 'eighth' | '16th'
 }
 
-const REST_NOTATIONS: ReadonlyArray<{
+type Notation = {
   durationTicks: number
   notationType: NonNullable<ScoreEvent['notationType']>
   dotted: boolean
-}> = [
+}
+
+const NOTATIONS: readonly Notation[] = [
   { durationTicks: 96, notationType: 'whole', dotted: false },
   { durationTicks: 72, notationType: 'half', dotted: true },
   { durationTicks: 48, notationType: 'half', dotted: false },
@@ -33,8 +35,8 @@ function typeFor(event: ScoreEvent): string {
 
 function beamLevel(event: ScoreEvent): number {
   if (event.rest) return 0
-  if (event.value === 'sixteenth') return 2
-  if (event.value === 'eighth') return 1
+  if (typeFor(event) === '16th') return 2
+  if (typeFor(event) === 'eighth') return 1
   return 0
 }
 
@@ -66,7 +68,7 @@ function beamXml(events: ScoreEvent[], index: number): string {
 
 function eventXml(event: ScoreEvent, index: number, events: ScoreEvent[]): string {
   const pitch = event.rest
-    ? '<rest/>'
+    ? event.startTick === 0 && event.durationTicks === TICKS_PER_MEASURE ? '<rest measure="yes"/>' : '<rest/>'
     : '<unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><instrument id="P1-I1"/>'
   const tieSound = `${event.tieStop ? '<tie type="stop"/>' : ''}${event.tieStart ? '<tie type="start"/>' : ''}`
   const timeModification = event.triplet
@@ -91,13 +93,68 @@ function eventXml(event: ScoreEvent, index: number, events: ScoreEvent[]): strin
   </note>`
 }
 
+function metricalStrength(tick: number): number {
+  if (tick % 96 === 0) return 4
+  if (tick % 48 === 0) return 3
+  if (tick % 24 === 0) return 2
+  if (tick % 12 === 0) return 1
+  if (tick % 6 === 0) return 0
+  return -1
+}
+
+function doesNotObscureStrongerBeat(startTick: number, durationTicks: number): boolean {
+  const startStrength = metricalStrength(startTick)
+  for (let tick = startTick + 6; tick < startTick + durationTicks; tick += 6) {
+    if (metricalStrength(tick) > startStrength) return false
+  }
+  return true
+}
+
+function spellDuration(startTick: number, durationTicks: number): Array<Notation & { startTick: number }> {
+  const result: Array<Notation & { startTick: number }> = []
+  let cursor = startTick
+  let remainingTicks = durationTicks
+
+  while (remainingTicks > 0) {
+    const notation = NOTATIONS.find(({ durationTicks: candidateTicks }) => (
+      candidateTicks <= remainingTicks && doesNotObscureStrongerBeat(cursor, candidateTicks)
+    ))
+    if (!notation) throw new Error(`Cannot spell ${durationTicks} ticks from tick ${startTick}`)
+    result.push({ ...notation, startTick: cursor })
+    cursor += notation.durationTicks
+    remainingTicks -= notation.durationTicks
+  }
+  return result
+}
+
 function scoreEvents(events: readonly RhythmEvent[]): ScoreEvent[] {
   const result: ScoreEvent[] = []
 
   for (let index = 0; index < events.length;) {
     const event = events[index]
-    if (!event.rest || event.triplet) {
-      result.push({ ...event, sourceEventCount: 1 })
+    if (event.triplet) {
+      result.push({ ...event, sourceEventIndexes: [index] })
+      index += 1
+      continue
+    }
+
+    if (!event.rest) {
+      const fragments = spellDuration(event.startTick, event.durationTicks)
+      fragments.forEach((fragment, fragmentIndex) => {
+        const isFirst = fragmentIndex === 0
+        const isLast = fragmentIndex === fragments.length - 1
+        result.push({
+          ...event,
+          id: fragments.length === 1 ? event.id : `${event.id}--score-${fragmentIndex + 1}`,
+          startTick: fragment.startTick,
+          durationTicks: fragment.durationTicks,
+          dotted: fragment.dotted,
+          notationType: fragment.notationType,
+          tieStop: !isFirst || event.tieStop,
+          tieStart: !isLast || event.tieStart,
+          sourceEventIndexes: [index],
+        })
+      })
       index += 1
       continue
     }
@@ -114,42 +171,26 @@ function scoreEvents(events: readonly RhythmEvent[]): ScoreEvent[] {
       runEnd += 1
     }
 
-    let consumedTicks = 0
-    let consumedEvents = 0
-    while (consumedTicks < runTicks) {
-      const notation = REST_NOTATIONS.find(({ durationTicks }) => durationTicks <= runTicks - consumedTicks)
-      if (!notation) {
-        const source = events[index + consumedEvents]
-        result.push({ ...source, sourceEventCount: 1 })
-        consumedTicks += source.durationTicks
-        consumedEvents += 1
-        continue
-      }
-
-      let sourceEventCount = 0
-      let sourceTicks = 0
-      while (sourceTicks < notation.durationTicks && index + consumedEvents + sourceEventCount < runEnd) {
-        sourceTicks += events[index + consumedEvents + sourceEventCount].durationTicks
-        sourceEventCount += 1
-      }
-      if (sourceTicks !== notation.durationTicks) {
-        const source = events[index + consumedEvents]
-        result.push({ ...source, sourceEventCount: 1 })
-        consumedTicks += source.durationTicks
-        consumedEvents += 1
-        continue
-      }
-
-      const source = events[index + consumedEvents]
+    for (const notation of spellDuration(event.startTick, runTicks)) {
+      const notationEnd = notation.startTick + notation.durationTicks
+      const sourceEventIndexes = events
+        .slice(index, runEnd)
+        .map((_, offset) => index + offset)
+        .filter((sourceIndex) => {
+          const source = events[sourceIndex]
+          return source.startTick < notationEnd && source.startTick + source.durationTicks > notation.startTick
+        })
       result.push({
-        ...source,
+        ...events[sourceEventIndexes[0]],
+        id: `${events[sourceEventIndexes[0]].id}--rest-${notation.startTick}`,
+        startTick: notation.startTick,
         durationTicks: notation.durationTicks,
         dotted: notation.dotted,
         notationType: notation.notationType,
-        sourceEventCount,
+        tieStart: false,
+        tieStop: false,
+        sourceEventIndexes,
       })
-      consumedTicks += notation.durationTicks
-      consumedEvents += sourceEventCount
     }
     index = runEnd
   }
@@ -157,7 +198,37 @@ function scoreEvents(events: readonly RhythmEvent[]): ScoreEvent[] {
   return result
 }
 
+function assertSupportedExercise(exercise: RhythmExercise): void {
+  if (exercise.timeSignature.beats !== 4 || exercise.timeSignature.beatType !== 4) {
+    throw new Error('Score spelling currently supports only 4/4 time')
+  }
+  for (const measure of exercise.measures) {
+    let expectedStartTick = 0
+    for (const event of measure.events) {
+      if (!Number.isInteger(event.durationTicks) || event.durationTicks <= 0) {
+        throw new Error(`Invalid duration for event ${event.id}`)
+      }
+      if (event.startTick !== expectedStartTick) {
+        throw new Error(`Events in measure ${measure.index} must be contiguous`)
+      }
+      const supportedTriplet = (event.value === 'eighth' && event.durationTicks === 8)
+        || (event.value === 'quarter' && event.durationTicks === 16)
+      if (event.triplet && !supportedTriplet) {
+        throw new Error(`Cannot spell triplet event ${event.id}`)
+      }
+      if (!event.triplet && event.durationTicks % 6 !== 0) {
+        throw new Error(`Cannot spell event ${event.id} with the supported note values`)
+      }
+      expectedStartTick += event.durationTicks
+    }
+    if (expectedStartTick !== TICKS_PER_MEASURE) {
+      throw new Error(`Measure ${measure.index} must contain ${TICKS_PER_MEASURE} ticks`)
+    }
+  }
+}
+
 export function scoreEventIndex(exercise: RhythmExercise, sourceEventIndex: number): number {
+  assertSupportedExercise(exercise)
   if (sourceEventIndex < 0) return -1
   const sourceEvents = exercise.measures.flatMap((measure) => measure.events)
   const activeEvent = sourceEvents[sourceEventIndex]
@@ -167,10 +238,10 @@ export function scoreEventIndex(exercise: RhythmExercise, sourceEventIndex: numb
   let sourceIndex = 0
   for (const measure of exercise.measures) {
     for (const event of scoreEvents(measure.events)) {
-      if (sourceEventIndex < sourceIndex + event.sourceEventCount) return scoreIndex
-      sourceIndex += event.sourceEventCount
+      if (event.sourceEventIndexes.includes(sourceEventIndex - sourceIndex)) return scoreIndex
       scoreIndex += 1
     }
+    sourceIndex += measure.events.length
   }
   return -1
 }
@@ -180,6 +251,7 @@ type MusicXmlLayout = {
 }
 
 export function toMusicXml(exercise: RhythmExercise, layout: MusicXmlLayout = {}): string {
+  assertSupportedExercise(exercise)
   const measuresPerSystem = layout.measuresPerSystem ?? 4
   const measures = exercise.measures
     .map((measure, index) => `<measure number="${index + 1}">
