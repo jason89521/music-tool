@@ -10,9 +10,9 @@ type ScoreViewProps = {
   reduceMotion: boolean
 }
 
-function measuresPerSystemForViewport(): 1 | 2 | 4 {
-  if (window.matchMedia?.('(min-width: 1200px)').matches) return 4
-  if (window.matchMedia?.('(min-width: 600px)').matches) return 2
+function measuresPerSystemForWidth(width: number): 1 | 2 | 4 {
+  if (width >= 1200) return 4
+  if (width >= 600) return 2
   return 1
 }
 
@@ -20,26 +20,28 @@ export function ScoreView({ exercise, activeEventIndex, reduceMotion }: ScoreVie
   const hostRef = useRef<HTMLDivElement>(null)
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null)
   const cursorIndexRef = useRef(-1)
+  const previousExerciseRef = useRef<RhythmExercise | undefined>(undefined)
   const [error, setError] = useState<string>()
-  const [measuresPerSystem, setMeasuresPerSystem] = useState<1 | 2 | 4>(measuresPerSystemForViewport)
+  const [measuresPerSystem, setMeasuresPerSystem] = useState<1 | 2 | 4>(1)
 
   useEffect(() => {
-    const wideMedia = window.matchMedia?.('(min-width: 1200px)')
-    const mediumMedia = window.matchMedia?.('(min-width: 600px)')
-    if (!wideMedia || !mediumMedia) return
-    const updateLayout = () => setMeasuresPerSystem(measuresPerSystemForViewport())
-    updateLayout()
-    wideMedia.addEventListener('change', updateLayout)
-    mediumMedia.addEventListener('change', updateLayout)
-    return () => {
-      wideMedia.removeEventListener('change', updateLayout)
-      mediumMedia.removeEventListener('change', updateLayout)
-    }
+    const host = hostRef.current
+    if (!host) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      setMeasuresPerSystem(measuresPerSystemForWidth(entry.contentRect.width))
+    })
+    observer.observe(host)
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
+    const exerciseChanged = previousExerciseRef.current !== exercise
+    const maximumScrollTop = host.scrollHeight - host.clientHeight
+    const relativeScrollPosition = maximumScrollTop > 0 ? host.scrollTop / maximumScrollTop : 0
+    previousExerciseRef.current = exercise
     host.replaceChildren()
     const osmd = new OpenSheetMusicDisplay(host, {
       autoResize: true,
@@ -52,6 +54,14 @@ export function ScoreView({ exercise, activeEventIndex, reduceMotion }: ScoreVie
     })
     osmd.EngravingRules.PercussionOneLineCutoff = 0
     osmd.EngravingRules.PercussionUseXMLDisplayStep = true
+    osmd.EngravingRules.PageTopMargin = 0
+    osmd.EngravingRules.PageTopMarginNarrow = 0
+    osmd.EngravingRules.PageBottomMargin = 0
+    osmd.EngravingRules.PageLeftMargin = 0
+    osmd.EngravingRules.PageRightMargin = 0
+    osmd.EngravingRules.RenderClefsAtBeginningOfStaffline = false
+    osmd.EngravingRules.RenderMeasureNumbers = false
+    osmd.EngravingRules.RenderTimeSignatures = false
     osmd.Zoom = 1
     osmdRef.current = osmd
     let cancelled = false
@@ -63,6 +73,8 @@ export function ScoreView({ exercise, activeEventIndex, reduceMotion }: ScoreVie
         osmd.cursor.reset()
         osmd.cursor.hide()
         cursorIndexRef.current = -1
+        const nextMaximumScrollTop = host.scrollHeight - host.clientHeight
+        host.scrollTop = exerciseChanged ? 0 : relativeScrollPosition * nextMaximumScrollTop
         setError(undefined)
       })
       .catch(() => setError('樂譜暫時無法顯示，請重新產生節奏。'))
