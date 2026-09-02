@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay'
 import type { RhythmExercise } from '../domain/rhythm'
-import { scoreEventIndex, toMusicXml } from '../score/toMusicXml'
+import {
+  playbackTargetForScoreEvent,
+  scoreEventIndexAtTick,
+  tiedScoreEventIndexesAtTick,
+  toMusicXml,
+  type ScorePlaybackTarget,
+} from '../score/toMusicXml'
 import { moveCursorToEvent } from './cursorNavigation'
 
 type ScoreViewProps = {
   exercise: RhythmExercise
   activeEventIndex: number
+  activeTick: number
+  isPlaying: boolean
+  onManualPositionChange: (target: ScorePlaybackTarget) => void
   reduceMotion: boolean
 }
 
@@ -16,7 +25,14 @@ function measuresPerSystemForWidth(width: number): 1 | 2 | 4 {
   return 1
 }
 
-export function ScoreView({ exercise, activeEventIndex, reduceMotion }: ScoreViewProps) {
+export function ScoreView({
+  exercise,
+  activeEventIndex,
+  activeTick,
+  isPlaying,
+  onManualPositionChange,
+  reduceMotion,
+}: ScoreViewProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null)
   const cursorIndexRef = useRef(-1)
@@ -88,22 +104,39 @@ export function ScoreView({ exercise, activeEventIndex, reduceMotion }: ScoreVie
   useEffect(() => {
     const osmd = osmdRef.current
     if (!osmd || !osmd.cursor) return
-    const visibleEventIndex = scoreEventIndex(exercise, activeEventIndex)
+    const visibleEventIndex = scoreEventIndexAtTick(exercise, activeEventIndex, activeTick)
+    if (visibleEventIndex === cursorIndexRef.current) return
     moveCursorToEvent(osmd.cursor, visibleEventIndex)
-    cursorIndexRef.current = -1
-    if (visibleEventIndex < 0) return
+    const scoreEventElements = hostRef.current?.querySelectorAll<SVGGElement>('.vf-stavenote') ?? []
+    for (const element of scoreEventElements) element.classList.remove('tie-chain-active')
+    for (const index of tiedScoreEventIndexesAtTick(exercise, activeEventIndex, activeTick)) {
+      scoreEventElements[index]?.classList.add('tie-chain-active')
+    }
     cursorIndexRef.current = visibleEventIndex
+    if (visibleEventIndex < 0) return
     const cursorElement = hostRef.current?.querySelector<HTMLElement>('#cursorImg-0')
     cursorElement?.scrollIntoView({
       behavior: reduceMotion ? 'auto' : 'smooth',
       block: 'center',
       inline: 'center',
     })
-  }, [activeEventIndex, exercise, reduceMotion])
+  }, [activeEventIndex, activeTick, exercise, reduceMotion])
+
+  const handleScoreClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isPlaying) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const scoreEventElement = target.closest('.vf-stavenote')
+    if (!scoreEventElement) return
+    const scoreEventElements = Array.from(event.currentTarget.querySelectorAll('.vf-stavenote'))
+    const selectedScoreEventIndex = scoreEventElements.indexOf(scoreEventElement)
+    const playbackTarget = playbackTargetForScoreEvent(exercise, selectedScoreEventIndex)
+    if (playbackTarget) onManualPositionChange(playbackTarget)
+  }
 
   return (
     <section className="score-card" aria-label="節奏樂譜">
-      {error ? <p role="alert">{error}</p> : <div className="score" ref={hostRef} />}
+      {error ? <p role="alert">{error}</p> : <div className="score" ref={hostRef} onClick={handleScoreClick} />}
     </section>
   )
 }

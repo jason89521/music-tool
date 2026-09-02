@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
 import { beforeEach, vi, describe, expect, it } from 'vitest'
 import { generateRhythm } from '../domain/generateRhythm'
 import { ScoreView } from './ScoreView'
@@ -61,6 +61,11 @@ vi.mock('opensheetmusicdisplay', () => ({
       scoreMockState.renderCount += 1
       const score = document.createElement('svg')
       score.dataset.render = String(scoreMockState.renderCount)
+      for (let index = 0; index < 4; index += 1) {
+        const scoreEvent = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+        scoreEvent.classList.add('vf-stavenote')
+        score.append(scoreEvent)
+      }
       this.host.append(score)
     }
   },
@@ -70,11 +75,11 @@ describe('ScoreView', () => {
   it('replaces the previous score when the exercise changes', async () => {
     const first = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 1 }, () => 0.1)
     const second = generateRhythm({ selectedMaterials: ['eighth'], measureCount: 2 }, () => 0.8)
-    const view = render(<ScoreView exercise={first} activeEventIndex={-1} reduceMotion />)
+    const view = render(<ScoreView exercise={first} activeEventIndex={-1} activeTick={-1} isPlaying={false} onManualPositionChange={vi.fn()} reduceMotion />)
     await waitFor(() => expect(view.container.querySelectorAll('svg')).toHaveLength(1))
     expect(scoreMockState.drawPartNames).toBe(false)
 
-    view.rerender(<ScoreView exercise={second} activeEventIndex={-1} reduceMotion />)
+    view.rerender(<ScoreView exercise={second} activeEventIndex={-1} activeTick={-1} isPlaying={false} onManualPositionChange={vi.fn()} reduceMotion />)
 
     await waitFor(() => expect(view.container.querySelector('svg[data-render="2"]')).not.toBeNull())
     expect(view.container.querySelectorAll('svg')).toHaveLength(1)
@@ -82,7 +87,7 @@ describe('ScoreView', () => {
 
   it('uses the score container width to choose the system layout', async () => {
     const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 4 }, () => 0.1)
-    render(<ScoreView exercise={exercise} activeEventIndex={-1} reduceMotion />)
+    render(<ScoreView exercise={exercise} activeEventIndex={-1} activeTick={-1} isPlaying={false} onManualPositionChange={vi.fn()} reduceMotion />)
     await waitFor(() => expect(scoreMockState.loadedScores).toHaveLength(1))
 
     resize(600)
@@ -98,7 +103,7 @@ describe('ScoreView', () => {
 
   it('removes redundant score symbols and page margins', async () => {
     const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 1 }, () => 0.1)
-    render(<ScoreView exercise={exercise} activeEventIndex={-1} reduceMotion />)
+    render(<ScoreView exercise={exercise} activeEventIndex={-1} activeTick={-1} isPlaying={false} onManualPositionChange={vi.fn()} reduceMotion />)
     await waitFor(() => expect(scoreMockState.engravingRules).toBeDefined())
 
     expect(scoreMockState.engravingRules).toMatchObject({
@@ -111,5 +116,45 @@ describe('ScoreView', () => {
       RenderMeasureNumbers: false,
       RenderTimeSignatures: false,
     })
+  })
+
+  it('reports a manually selected score position while playback is stopped', async () => {
+    const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 1 }, () => 0.1)
+    const onManualPositionChange = vi.fn()
+    const view = render(
+      <ScoreView
+        exercise={exercise}
+        activeEventIndex={-1}
+        activeTick={-1}
+        isPlaying={false}
+        onManualPositionChange={onManualPositionChange}
+        reduceMotion
+      />,
+    )
+    await waitFor(() => expect(view.container.querySelectorAll('.vf-stavenote')).toHaveLength(4))
+
+    fireEvent.click(view.container.querySelectorAll('.vf-stavenote')[1])
+
+    expect(onManualPositionChange).toHaveBeenCalledWith({ sourceEventIndex: 1, tick: 24 })
+  })
+
+  it('ignores manual score positioning during playback', async () => {
+    const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 1 }, () => 0.1)
+    const onManualPositionChange = vi.fn()
+    const view = render(
+      <ScoreView
+        exercise={exercise}
+        activeEventIndex={0}
+        activeTick={0}
+        isPlaying
+        onManualPositionChange={onManualPositionChange}
+        reduceMotion
+      />,
+    )
+    await waitFor(() => expect(view.container.querySelectorAll('.vf-stavenote')).toHaveLength(4))
+
+    fireEvent.click(view.container.querySelectorAll('.vf-stavenote')[1])
+
+    expect(onManualPositionChange).not.toHaveBeenCalled()
   })
 })

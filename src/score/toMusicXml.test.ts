@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { generateRhythm } from '../domain/generateRhythm'
-import { scoreEventIndex, toMusicXml } from './toMusicXml'
+import {
+  scoreEventIndex,
+  scoreEventIndexAtTick,
+  playbackTargetForScoreEvent,
+  tiedScoreEventIndexesAtTick,
+  toMusicXml,
+} from './toMusicXml'
 import type { RhythmExercise } from '../domain/rhythm'
 
 describe('toMusicXml', () => {
@@ -116,6 +122,11 @@ describe('toMusicXml', () => {
     expect(xml).toMatch(/id="crossing--score-1"[\s\S]*<duration>24<\/duration>[\s\S]*<tie type="start"\/>/)
     expect(xml).toMatch(/id="crossing--score-2"[\s\S]*<duration>12<\/duration>[\s\S]*<tie type="stop"\/>/)
     expect(scoreEventIndex(exercise, 1)).toBe(1)
+    expect(scoreEventIndexAtTick(exercise, 1, 24)).toBe(1)
+    expect(scoreEventIndexAtTick(exercise, 1, 48)).toBe(2)
+    expect(tiedScoreEventIndexesAtTick(exercise, 1, 24)).toEqual([1, 2])
+    expect(tiedScoreEventIndexesAtTick(exercise, 1, 48)).toEqual([1, 2])
+    expect(playbackTargetForScoreEvent(exercise, 2)).toEqual({ sourceEventIndex: 1, tick: 24 })
   })
 
   it('uses a whole rest for a full silent measure', () => {

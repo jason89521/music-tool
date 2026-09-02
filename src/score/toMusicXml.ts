@@ -246,6 +246,93 @@ export function scoreEventIndex(exercise: RhythmExercise, sourceEventIndex: numb
   return -1
 }
 
+export function scoreEventIndexAtTick(
+  exercise: RhythmExercise,
+  sourceEventIndex: number,
+  absoluteTick: number,
+): number {
+  assertSupportedExercise(exercise)
+  if (sourceEventIndex < 0 || absoluteTick < 0) return -1
+
+  const sourceEvents = exercise.measures.flatMap((measure) => measure.events)
+  if (!sourceEvents[sourceEventIndex]) return -1
+
+  let scoreIndex = 0
+  for (const measure of exercise.measures) {
+    for (const event of scoreEvents(measure.events)) {
+      const eventStart = measure.index * TICKS_PER_MEASURE + event.startTick
+      if (absoluteTick >= eventStart && absoluteTick < eventStart + event.durationTicks) return scoreIndex
+      scoreIndex += 1
+    }
+  }
+  return -1
+}
+
+export function tiedScoreEventIndexesAtTick(
+  exercise: RhythmExercise,
+  sourceEventIndex: number,
+  absoluteTick: number,
+): number[] {
+  const activeScoreIndex = scoreEventIndexAtTick(exercise, sourceEventIndex, absoluteTick)
+  if (activeScoreIndex < 0) return []
+
+  const events = exercise.measures.flatMap((measure) => scoreEvents(measure.events))
+  const activeEvent = events[activeScoreIndex]
+  if (!activeEvent?.tieStart && !activeEvent?.tieStop) return []
+
+  let chainStart = activeScoreIndex
+  while (chainStart > 0 && events[chainStart].tieStop && events[chainStart - 1].tieStart) chainStart -= 1
+
+  let chainEnd = activeScoreIndex
+  while (
+    chainEnd < events.length - 1
+    && events[chainEnd].tieStart
+    && events[chainEnd + 1].tieStop
+  ) chainEnd += 1
+
+  return Array.from({ length: chainEnd - chainStart + 1 }, (_, index) => chainStart + index)
+}
+
+export type ScorePlaybackTarget = {
+  sourceEventIndex: number
+  tick: number
+}
+
+export function playbackTargetForScoreEvent(
+  exercise: RhythmExercise,
+  selectedScoreEventIndex: number,
+): ScorePlaybackTarget | undefined {
+  assertSupportedExercise(exercise)
+  if (selectedScoreEventIndex < 0) return undefined
+
+  const events = exercise.measures.flatMap((measure) => scoreEvents(measure.events))
+  if (!events[selectedScoreEventIndex]) return undefined
+
+  let targetScoreIndex = selectedScoreEventIndex
+  while (
+    targetScoreIndex > 0
+    && events[targetScoreIndex].tieStop
+    && events[targetScoreIndex - 1].tieStart
+  ) targetScoreIndex -= 1
+
+  let scoreIndex = 0
+  let sourceIndexOffset = 0
+  for (const measure of exercise.measures) {
+    const measureScoreEvents = scoreEvents(measure.events)
+    for (const event of measureScoreEvents) {
+      if (scoreIndex === targetScoreIndex) {
+        return {
+          sourceEventIndex: sourceIndexOffset + event.sourceEventIndexes[0],
+          tick: measure.index * TICKS_PER_MEASURE + event.startTick,
+        }
+      }
+      scoreIndex += 1
+    }
+    sourceIndexOffset += measure.events.length
+  }
+  return undefined
+}
+
 type MusicXmlLayout = {
   measuresPerSystem?: 1 | 2 | 4
 }

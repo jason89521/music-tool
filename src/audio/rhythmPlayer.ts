@@ -3,6 +3,7 @@ import { TICKS_PER_MEASURE, TICKS_PER_QUARTER, type PlaybackSettings, type Rhyth
 export type PlaybackSnapshot = {
   phase: 'countIn' | 'exercise' | 'ended'
   eventIndex: number
+  tick: number
   countInBeat: number
 }
 
@@ -80,12 +81,12 @@ export class RhythmPlayer {
       const now = this.context.currentTime
       if (countInTicks > 0 && now < this.exerciseStartsAt) {
         const beat = Math.max(0, Math.floor((now - this.startedAt) / (secondsPerTick * TICKS_PER_QUARTER)))
-        onSnapshot({ phase: 'countIn', eventIndex: -1, countInBeat: beat + 1 })
+        onSnapshot({ phase: 'countIn', eventIndex: -1, tick: -1, countInBeat: beat + 1 })
       } else {
         const elapsed = now - this.exerciseStartsAt + this.pausedExerciseSeconds
         if (elapsed >= this.exerciseDuration) {
           this.status = 'idle'
-          onSnapshot({ phase: 'ended', eventIndex: -1, countInBeat: 0 })
+          onSnapshot({ phase: 'ended', eventIndex: -1, tick: -1, countInBeat: 0 })
           onFinish()
           return
         }
@@ -98,7 +99,7 @@ export class RhythmPlayer {
         if (activeEvent) {
           this.currentEventStartSeconds = (activeEvent.measureIndex * TICKS_PER_MEASURE + activeEvent.startTick) * secondsPerTick
         }
-        onSnapshot({ phase: 'exercise', eventIndex, countInBeat: 0 })
+        onSnapshot({ phase: 'exercise', eventIndex, tick, countInBeat: 0 })
       }
       this.animationFrame = requestAnimationFrame(update)
     }
@@ -108,6 +109,13 @@ export class RhythmPlayer {
   pause(): void {
     if (!this.context || this.status !== 'playing') return
     this.pausedExerciseSeconds = this.currentEventStartSeconds
+    this.status = 'paused'
+    this.cancelScheduled()
+  }
+
+  seek(absoluteTick: number, bpm: number): void {
+    this.pausedExerciseSeconds = absoluteTick * 60 / bpm / TICKS_PER_QUARTER
+    this.currentEventStartSeconds = this.pausedExerciseSeconds
     this.status = 'paused'
     this.cancelScheduled()
   }

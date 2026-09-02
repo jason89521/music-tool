@@ -13,6 +13,7 @@ import {
 } from './domain/rhythm'
 import { loadState, saveState } from './storage'
 import { shouldShowInstallBanner, usePwaInstall } from './pwaInstall'
+import type { ScorePlaybackTarget } from './score/toMusicXml'
 
 const ScoreView = lazy(() => import('./components/ScoreView').then((module) => ({ default: module.ScoreView })))
 
@@ -98,7 +99,12 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
     initial?.exercise ?? generateRhythm(DEFAULT_GENERATION_SETTINGS),
   )
   const [status, setStatus] = useState<PlaybackStatus>('idle')
-  const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({ phase: 'ended', eventIndex: -1, countInBeat: 0 })
+  const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({
+    phase: 'ended',
+    eventIndex: -1,
+    tick: -1,
+    countInBeat: 0,
+  })
   const [audioError, setAudioError] = useState<string>()
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -142,7 +148,7 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
       return
     }
     setStatus('idle')
-    setSnapshot({ phase: 'ended', eventIndex: -1, countInBeat: 0 })
+    setSnapshot({ phase: 'ended', eventIndex: -1, tick: -1, countInBeat: 0 })
     if (loopIteration) playerRef.current.stop()
   }
 
@@ -165,7 +171,14 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
   const handleStop = () => {
     playerRef.current.stop()
     setStatus('idle')
-    setSnapshot({ phase: 'ended', eventIndex: -1, countInBeat: 0 })
+    setSnapshot({ phase: 'ended', eventIndex: -1, tick: -1, countInBeat: 0 })
+  }
+
+  const handleManualPositionChange = ({ sourceEventIndex, tick }: ScorePlaybackTarget) => {
+    if (status === 'playing') return
+    playerRef.current.seek(tick, playback.bpm)
+    setStatus('paused')
+    setSnapshot({ phase: 'exercise', eventIndex: sourceEventIndex, tick, countInBeat: 0 })
   }
 
   useEffect(() => {
@@ -238,7 +251,14 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
           預備拍 · {snapshot.countInBeat}
         </div>
         <Suspense fallback={<section className="score-card" aria-busy="true">正在準備樂譜⋯</section>}>
-          <ScoreView exercise={exercise} activeEventIndex={snapshot.eventIndex} reduceMotion={reduceMotion} />
+          <ScoreView
+            exercise={exercise}
+            activeEventIndex={snapshot.eventIndex}
+            activeTick={snapshot.tick}
+            isPlaying={status === 'playing'}
+            onManualPositionChange={handleManualPositionChange}
+            reduceMotion={reduceMotion}
+          />
         </Suspense>
         {audioError && <p className="error" role="alert">{audioError}</p>}
       </section>
