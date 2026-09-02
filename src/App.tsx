@@ -100,7 +100,8 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
   const [status, setStatus] = useState<PlaybackStatus>('idle')
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({ phase: 'ended', eventIndex: -1, countInBeat: 0 })
   const [audioError, setAudioError] = useState<string>()
-  const [noteSettingsOpen, setNoteSettingsOpen] = useState(false)
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const playerRef = useRef(new RhythmPlayer())
   const playbackRef = useRef(playback)
   const exerciseRef = useRef(exercise)
@@ -114,24 +115,24 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
   }, [exercise, generation, playback])
 
   useEffect(() => {
-    if (!noteSettingsOpen) return
-    const onPopState = () => setNoteSettingsOpen(false)
+    if (!advancedSettingsOpen) return
+    const onPopState = () => setAdvancedSettingsOpen(false)
     window.addEventListener('popstate', onPopState)
     document.body.classList.add('modal-open')
     return () => {
       window.removeEventListener('popstate', onPopState)
       document.body.classList.remove('modal-open')
     }
-  }, [noteSettingsOpen])
+  }, [advancedSettingsOpen])
 
-  const openNoteSettings = () => {
-    window.history.pushState({ noteSettings: true }, '')
-    setNoteSettingsOpen(true)
+  const openAdvancedSettings = () => {
+    window.history.pushState({ advancedSettings: true }, '')
+    setAdvancedSettingsOpen(true)
   }
 
-  const closeNoteSettings = () => {
-    if (window.history.state?.noteSettings) window.history.back()
-    else setNoteSettingsOpen(false)
+  const closeAdvancedSettings = () => {
+    if (window.history.state?.advancedSettings) window.history.back()
+    else setAdvancedSettingsOpen(false)
   }
 
   const finish = (loopIteration = false) => {
@@ -169,9 +170,9 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'Escape' && noteSettingsOpen) {
+      if (event.code === 'Escape' && advancedSettingsOpen) {
         event.preventDefault()
-        closeNoteSettings()
+        closeAdvancedSettings()
         return
       }
       const target = event.target
@@ -188,7 +189,11 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
 
   const regenerate = () => {
     handleStop()
-    setExercise(generateRhythm(generation))
+    setIsGenerating(true)
+    window.requestAnimationFrame(() => {
+      setExercise(generateRhythm(generation))
+      setIsGenerating(false)
+    })
   }
 
   const reset = () => {
@@ -206,61 +211,50 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
 
   return (
     <main className="practice-shell">
-      <header className="topbar">
-        <button className="back-button" onClick={onHome} aria-label="回到 Music Tool 首頁">←</button>
-        <div><span>Music Tool</span><h1>節奏練習器</h1></div>
-        <div className="topbar-actions">
-          {installButton}
-          <button className="settings-button" onClick={openNoteSettings} aria-label="音符設定" aria-haspopup="dialog">⚙</button>
-          <button className="text-button" onClick={reset}>重設</button>
-        </div>
-      </header>
-
-      <section className="settings-panel" aria-label="節奏與播放設定">
-        <div className="field-group">
-          <label htmlFor="measures">小節數</label>
-          <input id="measures" type="number" min="1" max="16" value={generation.measureCount} onChange={(event) => setGeneration((current) => ({ ...current, measureCount: Number(event.target.value) }))} />
-        </div>
-        <div className="field-group">
-          <label htmlFor="bpm">播放速度 <span>BPM</span></label>
-          <input id="bpm" className={!bpmValid ? 'invalid' : ''} type="number" min="20" max="400" value={playback.bpm} aria-invalid={!bpmValid} aria-describedby={!bpmValid ? 'bpm-error' : undefined} onChange={(event) => changePlayback('bpm', Number(event.target.value))} />
-          {!bpmValid && <small id="bpm-error" className="error">請輸入 20–400 的整數</small>}
-        </div>
-        <div className="field-group">
-          <label htmlFor="count-in">預備拍</label>
-          <select id="count-in" value={playback.countInMeasures} onChange={(event) => changePlayback('countInMeasures', Number(event.target.value) as 1 | 2)}>
-            <option value="1">1 小節</option><option value="2">2 小節</option>
-          </select>
-        </div>
-        <label className="toggle"><input type="checkbox" checked={playback.metronome} onChange={(event) => changePlayback('metronome', event.target.checked)} /><span>節拍器</span></label>
-        <label className="toggle"><input type="checkbox" checked={playback.loop} onChange={(event) => changePlayback('loop', event.target.checked)} /><span>循環播放</span></label>
-        <button className="generate-button" onClick={regenerate}>產生節奏</button>
-      </section>
-
-      {snapshot.phase === 'countIn' && <div className="count-in" role="status">預備拍 · {snapshot.countInBeat}</div>}
-      <Suspense fallback={<section className="score-card" aria-busy="true">正在準備樂譜⋯</section>}>
-        <ScoreView exercise={exercise} activeEventIndex={snapshot.eventIndex} reduceMotion={reduceMotion} />
-      </Suspense>
-
-      <section className="transport" aria-label="播放控制">
-        <button className="stop-button" onClick={handleStop} disabled={status === 'idle'} aria-label="停止">■</button>
-        <button className="play-button" onClick={() => void handlePlayPause()} disabled={!bpmValid} aria-label={status === 'playing' ? '暫停' : '播放'}>
+      <header className="control-bar" aria-label="播放與基礎設定">
+        <button className="control-button play-control" onClick={() => void handlePlayPause()} disabled={!bpmValid} aria-label={status === 'playing' ? '暫停' : '播放'}>
           {status === 'playing' ? 'Ⅱ' : '▶'}
         </button>
-        <div className="tempo-readout"><strong>{playback.bpm}</strong><span>BPM</span></div>
+        <button className="control-button" onClick={handleStop} disabled={status === 'idle'} aria-label="完全停止">■</button>
+        <label className="bpm-control">
+          <span>BPM</span>
+          <input className={!bpmValid ? 'invalid' : ''} type="number" min="20" max="400" value={playback.bpm} aria-label="播放速度 BPM" aria-invalid={!bpmValid} onChange={(event) => changePlayback('bpm', Number(event.target.value))} />
+        </label>
+        <button className="control-button toggle-control" type="button" aria-label="節拍器" aria-pressed={playback.metronome} onClick={() => changePlayback('metronome', !playback.metronome)}>
+          <span aria-hidden="true">♩</span><small>節拍器</small>
+        </button>
+        <button className="control-button toggle-control" type="button" aria-label="循環播放" aria-pressed={playback.loop} onClick={() => changePlayback('loop', !playback.loop)}>
+          <span aria-hidden="true">↻</span><small>Loop</small>
+        </button>
+        <button className="control-button settings-button" onClick={openAdvancedSettings} aria-label="進階設定" aria-haspopup="dialog">⚙</button>
+      </header>
+
+      <section className="score-viewport" aria-label="可捲動的節奏內容">
+        {snapshot.phase === 'countIn' && <div className="count-in" role="status">預備拍 · {snapshot.countInBeat}</div>}
+        <Suspense fallback={<section className="score-card" aria-busy="true">正在準備樂譜⋯</section>}>
+          <ScoreView exercise={exercise} activeEventIndex={snapshot.eventIndex} reduceMotion={reduceMotion} />
+        </Suspense>
+        {audioError && <p className="error" role="alert">{audioError}</p>}
       </section>
 
-      <section className="volume-panel" aria-label="音量設定">
-        <VolumeSlider label="小鼓" value={playback.snareVolume} onChange={(value) => changePlayback('snareVolume', value)} />
-        <VolumeSlider label="Click" value={playback.clickVolume} onChange={(value) => changePlayback('clickVolume', value)} />
-      </section>
-      {audioError && <p className="error" role="alert">{audioError}</p>}
-      <Credits />
-      {noteSettingsOpen && (
-        <NoteSettingsDialog
+      <footer className="generate-bar">
+        <button className="generate-button" onClick={regenerate} disabled={isGenerating}>
+          {isGenerating ? '產生中…' : '產生節奏'}
+        </button>
+      </footer>
+      {advancedSettingsOpen && (
+        <AdvancedSettingsDialog
+          generation={generation}
+          playback={playback}
+          bpmValid={bpmValid}
+          installButton={installButton}
           selectedMaterials={generation.selectedMaterials}
+          onGenerationChange={setGeneration}
+          onPlaybackChange={changePlayback}
           onChange={(selectedMaterials) => setGeneration((current) => ({ ...current, selectedMaterials }))}
-          onClose={closeNoteSettings}
+          onReset={reset}
+          onHome={onHome}
+          onClose={closeAdvancedSettings}
         />
       )}
     </main>
@@ -275,13 +269,29 @@ const MATERIAL_OPTIONS: ReadonlyArray<{ material: RhythmMaterial; label: string;
   { material: 'quarterTriplet', label: '四分三連音', symbol: '♩³' },
 ]
 
-function NoteSettingsDialog({
+function AdvancedSettingsDialog({
+  generation,
+  playback,
+  bpmValid,
+  installButton,
   selectedMaterials,
+  onGenerationChange,
+  onPlaybackChange,
   onChange,
+  onReset,
+  onHome,
   onClose,
 }: {
+  generation: GenerationSettings
+  playback: PlaybackSettings
+  bpmValid: boolean
+  installButton: React.ReactNode
   selectedMaterials: RhythmMaterial[]
+  onGenerationChange: React.Dispatch<React.SetStateAction<GenerationSettings>>
+  onPlaybackChange: <K extends keyof PlaybackSettings>(key: K, value: PlaybackSettings[K]) => void
   onChange: (selectedMaterials: RhythmMaterial[]) => void
+  onReset: () => void
+  onHome: () => void
   onClose: () => void
 }) {
   const [selectionHint, setSelectionHint] = useState<string>()
@@ -304,16 +314,31 @@ function NoteSettingsDialog({
 
   return (
     <div className="settings-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-      <section className="note-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="note-settings-title">
+      <section className="note-settings-dialog advanced-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="advanced-settings-title">
         <header className="note-settings-header">
           <div>
-            <p>NOTE</p>
-            <h2 id="note-settings-title" ref={titleRef} tabIndex={-1}>音符設定</h2>
+            <p>SETTINGS</p>
+            <h2 id="advanced-settings-title" ref={titleRef} tabIndex={-1}>進階設定</h2>
           </div>
-          <button className="dialog-close" onClick={onClose} aria-label="關閉音符設定">×</button>
+          <button className="dialog-close" onClick={onClose} aria-label="關閉進階設定">×</button>
         </header>
-        <p className="note-settings-description">選擇練習中可以出現的節奏素材</p>
-        <div className="note-options" aria-label="可出現的節奏素材">
+        <div className="advanced-settings-content">
+          <section className="settings-section" aria-labelledby="rhythm-settings-title">
+            <h3 id="rhythm-settings-title">節奏內容</h3>
+            <div className="dialog-field-grid">
+              <div className="field-group">
+                <label htmlFor="measures">小節數</label>
+                <input id="measures" type="number" min="1" max="16" value={generation.measureCount} onChange={(event) => onGenerationChange((current) => ({ ...current, measureCount: Number(event.target.value) }))} />
+              </div>
+              <div className="field-group">
+                <label htmlFor="count-in">預備拍</label>
+                <select id="count-in" value={playback.countInMeasures} onChange={(event) => onPlaybackChange('countInMeasures', Number(event.target.value) as 1 | 2)}>
+                  <option value="1">1 小節</option><option value="2">2 小節</option>
+                </select>
+              </div>
+            </div>
+            <p className="note-settings-description">選擇練習中可以出現的節奏素材</p>
+            <div className="note-options" aria-label="可出現的節奏素材">
           {MATERIAL_OPTIONS.map(({ material, label, symbol }) => {
             const selected = selectedMaterials.includes(material)
             return (
@@ -329,8 +354,31 @@ function NoteSettingsDialog({
               </button>
             )
           })}
+            </div>
+            <p className="selection-hint" role="status">{selectionHint ?? '節奏內容將從下一次產生節奏開始套用。'}</p>
+          </section>
+          <section className="settings-section" aria-labelledby="playback-settings-title">
+            <h3 id="playback-settings-title">播放</h3>
+            <div className="dialog-field-grid">
+              <div className="field-group">
+                <label htmlFor="advanced-bpm">播放速度 <span>BPM</span></label>
+                <input id="advanced-bpm" className={!bpmValid ? 'invalid' : ''} type="number" min="20" max="400" value={playback.bpm} aria-invalid={!bpmValid} onChange={(event) => onPlaybackChange('bpm', Number(event.target.value))} />
+                {!bpmValid && <small className="error">請輸入 20–400 的整數</small>}
+              </div>
+            </div>
+            <div className="volume-panel" aria-label="音量設定">
+              <VolumeSlider label="小鼓" value={playback.snareVolume} onChange={(value) => onPlaybackChange('snareVolume', value)} />
+              <VolumeSlider label="Click" value={playback.clickVolume} onChange={(value) => onPlaybackChange('clickVolume', value)} />
+            </div>
+          </section>
+          <section className="settings-section secondary-actions" aria-labelledby="other-settings-title">
+            <h3 id="other-settings-title">其他</h3>
+            <div>{installButton}</div>
+            <button className="text-button" onClick={onReset}>重設所有設定</button>
+            <button className="text-button" onClick={onHome}>回到 Music Tool 首頁</button>
+            <Credits />
+          </section>
         </div>
-        <p className="selection-hint" role="status">{selectionHint ?? '設定將從下一次產生節奏開始套用。'}</p>
       </section>
     </div>
   )
@@ -343,7 +391,7 @@ function VolumeSlider({ label, value, onChange }: { label: string; value: number
 
 function Credits() {
   return (
-    <footer>
+    <footer className="about-footer">
       <details><summary>關於與素材來源</summary><p>小鼓音效：<a href="https://freesound.org/people/sandyrb/sounds/38937/" target="_blank" rel="noreferrer">SBUC SNARE 005.wav</a>，作者 sandyrb，依 <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a> 使用；本版本使用公開預覽並經裁切、音量限制與淡出處理。</p></details>
     </footer>
   )
