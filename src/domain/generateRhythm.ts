@@ -94,11 +94,10 @@ function createMeasure(
       ? randomItem(allowedVariations, random)
       : pickLeastExposed(allowedBasics, exposure, random)
 
-    pattern.events.forEach((part, partIndex) => {
-      const canRest = cursor > 0 || partIndex > 0
+    pattern.events.forEach((part) => {
       const previous = events.at(-1)
       const previousRestTicks = previous?.rest ? previous.durationTicks : 0
-      const rest = canRest && previousRestTicks < TICKS_PER_QUARTER * 2 && random() < 0.18
+      const rest = previousRestTicks < TICKS_PER_QUARTER * 2 && random() < 0.18
       events.push({
         ...part,
         id: `m${measureIndex}-t${cursor}`,

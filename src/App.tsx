@@ -230,7 +230,13 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
       </header>
 
       <section className="score-viewport" aria-label="可捲動的節奏內容">
-        {snapshot.phase === 'countIn' && <div className="count-in" role="status">預備拍 · {snapshot.countInBeat}</div>}
+        <div
+          className={`count-in${snapshot.phase === 'countIn' ? ' visible' : ''}`}
+          role="status"
+          aria-hidden={snapshot.phase !== 'countIn'}
+        >
+          預備拍 · {snapshot.countInBeat}
+        </div>
         <Suspense fallback={<section className="score-card" aria-busy="true">正在準備樂譜⋯</section>}>
           <ScoreView exercise={exercise} activeEventIndex={snapshot.eventIndex} reduceMotion={reduceMotion} />
         </Suspense>

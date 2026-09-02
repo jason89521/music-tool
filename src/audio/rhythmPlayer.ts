@@ -78,7 +78,7 @@ export class RhythmPlayer {
     const update = () => {
       if (!this.context || this.status !== 'playing') return
       const now = this.context.currentTime
-      if (now < this.exerciseStartsAt) {
+      if (countInTicks > 0 && now < this.exerciseStartsAt) {
         const beat = Math.max(0, Math.floor((now - this.startedAt) / (secondsPerTick * TICKS_PER_QUARTER)))
         onSnapshot({ phase: 'countIn', eventIndex: -1, countInBeat: beat + 1 })
       } else {

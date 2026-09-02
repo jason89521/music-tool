@@ -43,7 +43,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .score-viewport { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 4px 24px; scroll-padding-block: 24px; }
 .score-card { min-height: 100%; background: white; border-radius: 20px; padding: 16px 28px; box-shadow: 0 14px 50px rgba(55,46,37,.09); overflow: hidden; }
 .score { min-height: 290px; }
-.count-in { position: sticky; top: 0; z-index: 2; width: max-content; margin: 0 auto 12px; background: #d55435; color: white; border-radius: 999px; padding: 8px 16px; font-weight: 700; }
+.count-in { position: sticky; top: 0; z-index: 2; width: max-content; margin: 0 auto 12px; background: #d55435; color: white; border-radius: 999px; padding: 8px 16px; font-weight: 700; visibility: hidden; }
+.count-in.visible { visibility: visible; }
 .generate-bar { padding: 12px 4px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #ded7ca; background: rgba(244,239,230,.94); backdrop-filter: blur(12px); }
 .generate-button { width: 100%; min-height: 54px; padding: 0 20px; border: 0; border-radius: 14px; background: #d55435; color: white; font-size: 1.05rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 10px 25px rgba(213,84,53,.22); }
 .generate-button:disabled { opacity: .65; cursor: progress; }

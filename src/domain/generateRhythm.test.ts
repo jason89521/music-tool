@@ -32,9 +32,10 @@ describe('generateRhythm', () => {
     expect(generateRhythm(settings(['quarter'], 99)).measures).toHaveLength(16)
   })
 
-  it('never starts a measure with a rest', () => {
-    const exercise = generateRhythm(settings(['quarter', 'eighth', 'sixteenth']), seededRandom(7))
-    expect(exercise.measures.every((measure) => !measure.events[0].rest)).toBe(true)
+  it('allows a measure to start with a rest', () => {
+    const randomValues = [0.5, 0.1]
+    const exercise = generateRhythm(settings(['quarter'], 1), () => randomValues.shift() ?? 0.9)
+    expect(exercise.measures.some((measure) => measure.events[0].rest)).toBe(true)
   })
 
   it('keeps ordinary notes independent from their triplet variants', () => {
