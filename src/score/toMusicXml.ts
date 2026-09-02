@@ -49,7 +49,7 @@ function eventXml(event: RhythmEvent, index: number, events: RhythmEvent[]): str
     : '<unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><instrument id="P1-I1"/>'
   const tieSound = `${event.tieStop ? '<tie type="stop"/>' : ''}${event.tieStart ? '<tie type="start"/>' : ''}`
   const timeModification = event.triplet
-    ? '<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes><normal-type>eighth</normal-type></time-modification>'
+    ? `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes><normal-type>${typeFor(event)}</normal-type></time-modification>`
     : ''
   const tiedNotation = `${event.tieStop ? '<tied type="stop"/>' : ''}${event.tieStart ? '<tied type="start"/>' : ''}`
   const tupletNotation = event.triplet

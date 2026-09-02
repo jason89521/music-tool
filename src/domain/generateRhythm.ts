@@ -1,15 +1,18 @@
 import {
   TICKS_PER_MEASURE,
   TICKS_PER_QUARTER,
-  eventKey,
-  type Difficulty,
   type GenerationSettings,
   type NoteValue,
   type RhythmEvent,
   type RhythmExercise,
+  type RhythmMaterial,
 } from './rhythm'
 
 type PatternEvent = Pick<RhythmEvent, 'durationTicks' | 'value' | 'dotted' | 'triplet'>
+type Pattern = {
+  events: PatternEvent[]
+  materials: RhythmMaterial[]
+}
 
 const q = (durationTicks: number, value: NoteValue, dotted = false, triplet = false): PatternEvent => ({
   durationTicks,
@@ -18,29 +21,48 @@ const q = (durationTicks: number, value: NoteValue, dotted = false, triplet = fa
   triplet,
 })
 
-const easyPatterns: PatternEvent[][] = [
-  [q(24, 'quarter')],
-  [q(12, 'eighth'), q(12, 'eighth')],
+const basicPatterns: Record<RhythmMaterial, Pattern> = {
+  quarter: { events: [q(24, 'quarter')], materials: ['quarter'] },
+  eighth: { events: [q(12, 'eighth'), q(12, 'eighth')], materials: ['eighth'] },
+  sixteenth: {
+    events: [q(6, 'sixteenth'), q(6, 'sixteenth'), q(6, 'sixteenth'), q(6, 'sixteenth')],
+    materials: ['sixteenth'],
+  },
+  eighthTriplet: {
+    events: [q(8, 'eighth', false, true), q(8, 'eighth', false, true), q(8, 'eighth', false, true)],
+    materials: ['eighthTriplet'],
+  },
+  quarterTriplet: {
+    events: [q(16, 'quarter', false, true), q(16, 'quarter', false, true), q(16, 'quarter', false, true)],
+    materials: ['quarterTriplet'],
+  },
+}
+
+const variationPatterns: Pattern[] = [
+  {
+    events: [q(12, 'eighth'), q(6, 'sixteenth'), q(6, 'sixteenth')],
+    materials: ['eighth', 'sixteenth'],
+  },
+  {
+    events: [q(6, 'sixteenth'), q(6, 'sixteenth'), q(12, 'eighth')],
+    materials: ['eighth', 'sixteenth'],
+  },
+  {
+    events: [q(18, 'eighth', true), q(6, 'sixteenth')],
+    materials: ['eighth', 'sixteenth'],
+  },
+  {
+    events: [q(6, 'sixteenth'), q(18, 'eighth', true)],
+    materials: ['eighth', 'sixteenth'],
+  },
+  {
+    events: [q(36, 'quarter', true), q(12, 'eighth')],
+    materials: ['quarter', 'eighth'],
+  },
 ]
 
-const mediumPatterns: PatternEvent[][] = [
-  ...easyPatterns,
-  [q(6, 'sixteenth'), q(6, 'sixteenth'), q(6, 'sixteenth'), q(6, 'sixteenth')],
-  [q(12, 'eighth'), q(6, 'sixteenth'), q(6, 'sixteenth')],
-  [q(6, 'sixteenth'), q(6, 'sixteenth'), q(12, 'eighth')],
-  [q(18, 'eighth', true), q(6, 'sixteenth')],
-  [q(6, 'sixteenth'), q(18, 'eighth', true)],
-]
-
-const hardPatterns: PatternEvent[][] = [
-  ...mediumPatterns,
-  [q(8, 'eighth', false, true), q(8, 'eighth', false, true), q(8, 'eighth', false, true)],
-]
-
-function patternsFor(difficulty: Difficulty): PatternEvent[][] {
-  if (difficulty === 'easy') return easyPatterns
-  if (difficulty === 'medium') return mediumPatterns
-  return hardPatterns
+function patternTicks(pattern: Pattern): number {
+  return pattern.events.reduce((total, event) => total + event.durationTicks, 0)
 }
 
 function randomItem<T>(items: readonly T[], random: () => number): T {
@@ -49,23 +71,34 @@ function randomItem<T>(items: readonly T[], random: () => number): T {
 
 function createMeasure(
   measureIndex: number,
-  difficulty: Difficulty,
+  selectedMaterials: readonly RhythmMaterial[],
+  exposure: Record<RhythmMaterial, number>,
   random: () => number,
 ): RhythmEvent[] {
   const events: RhythmEvent[] = []
-  const restChance = difficulty === 'hard' ? 0.25 : difficulty === 'medium' ? 0.18 : 0.12
+  let cursor = 0
 
-  for (let beat = 0; beat < 4;) {
-    const useDottedQuarter = difficulty !== 'easy' && beat <= 2 && random() < 0.12
-    const pattern = useDottedQuarter
-      ? [q(36, 'quarter', true), q(12, 'eighth')]
-      : randomItem(patternsFor(difficulty), random)
-    let cursor = beat * TICKS_PER_QUARTER
-    pattern.forEach((part, partIndex) => {
-      const canRest = !(beat === 0 && partIndex === 0 && difficulty !== 'hard')
+  while (cursor < TICKS_PER_MEASURE) {
+    const remainingTicks = TICKS_PER_MEASURE - cursor
+    const allowedVariations = variationPatterns.filter((pattern) => (
+      patternTicks(pattern) <= remainingTicks
+      && pattern.materials.every((material) => selectedMaterials.includes(material))
+    ))
+    const canUseQuarterTriplet = cursor % (TICKS_PER_QUARTER * 2) === 0
+    const allowedBasics = selectedMaterials
+      .filter((material) => material !== 'quarterTriplet' || canUseQuarterTriplet)
+      .map((material) => basicPatterns[material])
+      .filter((pattern) => patternTicks(pattern) <= remainingTicks)
+    const useVariation = allowedVariations.length > 0 && random() < 0.12
+    const pattern = useVariation
+      ? randomItem(allowedVariations, random)
+      : pickLeastExposed(allowedBasics, exposure, random)
+
+    pattern.events.forEach((part, partIndex) => {
+      const canRest = cursor > 0 || partIndex > 0
       const previous = events.at(-1)
       const previousRestTicks = previous?.rest ? previous.durationTicks : 0
-      const rest = canRest && previousRestTicks < TICKS_PER_QUARTER * 2 && random() < restChance
+      const rest = canRest && previousRestTicks < TICKS_PER_QUARTER * 2 && random() < 0.18
       events.push({
         ...part,
         id: `m${measureIndex}-t${cursor}`,
@@ -77,12 +110,24 @@ function createMeasure(
       })
       cursor += part.durationTicks
     })
-    beat += useDottedQuarter ? 2 : 1
+    pattern.materials.forEach((material) => { exposure[material] += 1 })
   }
 
   if (events.every((event) => event.rest)) events[0].rest = false
   addOptionalTie(events, random)
   return events
+}
+
+function pickLeastExposed(
+  patterns: readonly Pattern[],
+  exposure: Readonly<Record<RhythmMaterial, number>>,
+  random: () => number,
+): Pattern {
+  const lowestExposure = Math.min(...patterns.map((pattern) => exposure[pattern.materials[0]]))
+  return randomItem(
+    patterns.filter((pattern) => exposure[pattern.materials[0]] === lowestExposure),
+    random,
+  )
 }
 
 function addOptionalTie(events: RhythmEvent[], random: () => number): void {
@@ -98,39 +143,30 @@ function addOptionalTie(events: RhythmEvent[], random: () => number): void {
   events[index + 1].tieStop = true
 }
 
-function measureSignature(events: RhythmEvent[]): string {
-  return events.map(eventKey).join('|')
-}
-
-function allFourBeatsMatch(events: RhythmEvent[]): boolean {
-  const signatures = Array.from({ length: 4 }, (_, beat) => events
-    .filter((event) => Math.floor(event.startTick / TICKS_PER_QUARTER) === beat)
-    .map(eventKey)
-    .join('|'))
-  return new Set(signatures).size === 1
-}
-
 export function generateRhythm(
   settings: GenerationSettings,
   random: () => number = Math.random,
 ): RhythmExercise {
   const measureCount = Math.min(16, Math.max(1, Math.round(settings.measureCount)))
+  const selectedMaterials = settings.selectedMaterials.length > 0
+    ? settings.selectedMaterials
+    : ['quarter'] satisfies RhythmMaterial[]
+  const exposure: Record<RhythmMaterial, number> = {
+    quarter: 0,
+    eighth: 0,
+    sixteenth: 0,
+    eighthTriplet: 0,
+    quarterTriplet: 0,
+  }
   const measures: RhythmExercise['measures'] = []
   for (let index = 0; index < measureCount; index += 1) {
-    let events = createMeasure(index, settings.difficulty, random)
-    const previous = measures.at(-1)
-    let attempts = 0
-    while ((allFourBeatsMatch(events) || (previous && measureSignature(events) === measureSignature(previous.events))) && attempts < 8) {
-      events = createMeasure(index, settings.difficulty, random)
-      attempts += 1
-    }
+    const events = createMeasure(index, selectedMaterials, exposure, random)
     measures.push({ index, events })
   }
 
   return {
     version: 1,
     timeSignature: { beats: 4, beatType: 4 },
-    difficulty: settings.difficulty,
     measures,
   }
 }

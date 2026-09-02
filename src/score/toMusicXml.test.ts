@@ -5,7 +5,7 @@ import type { RhythmExercise } from '../domain/rhythm'
 
 describe('toMusicXml', () => {
   it('emits a percussion score with the requested number of measures', () => {
-    const xml = toMusicXml(generateRhythm({ difficulty: 'hard', measureCount: 3 }, () => 0.9))
+    const xml = toMusicXml(generateRhythm({ selectedMaterials: ['eighthTriplet'], measureCount: 3 }, () => 0.9))
     expect(xml).toContain('<sign>percussion</sign>')
     expect(xml).toContain('<staff-lines>5</staff-lines>')
     expect(xml.match(/<measure number=/g)).toHaveLength(3)
@@ -17,7 +17,6 @@ describe('toMusicXml', () => {
     const exercise: RhythmExercise = {
       version: 1,
       timeSignature: { beats: 4, beatType: 4 },
-      difficulty: 'easy',
       measures: [{
         index: 0,
         events: [
@@ -36,8 +35,18 @@ describe('toMusicXml', () => {
     expect(xml).toMatch(/id="second"[\s\S]*<beam number="1">end<\/beam>/)
   })
 
+  it('describes quarter-note triplets with the correct normal type', () => {
+    const exercise = generateRhythm({ selectedMaterials: ['quarterTriplet'], measureCount: 1 }, () => 0.9)
+    const xml = toMusicXml(exercise)
+
+    expect(xml).toContain('<type>quarter</type>')
+    expect(xml).toContain('<normal-type>quarter</normal-type>')
+    expect(xml.match(/<tuplet type="start"/g)).toHaveLength(2)
+    expect(xml.match(/<tuplet type="stop"/g)).toHaveLength(2)
+  })
+
   it('starts a new system after every four measures on wide screens', () => {
-    const exercise = generateRhythm({ difficulty: 'easy', measureCount: 9 }, () => 0.2)
+    const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 9 }, () => 0.2)
     const xml = toMusicXml(exercise, { measuresPerSystem: 4 })
 
     expect(xml.match(/<print new-system="yes"\/>/g)).toHaveLength(2)
@@ -46,14 +55,14 @@ describe('toMusicXml', () => {
   })
 
   it('starts a new system for every measure on narrow screens', () => {
-    const exercise = generateRhythm({ difficulty: 'easy', measureCount: 4 }, () => 0.2)
+    const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 4 }, () => 0.2)
     const xml = toMusicXml(exercise, { measuresPerSystem: 1 })
 
     expect(xml.match(/<print new-system="yes"\/>/g)).toHaveLength(3)
   })
 
   it('starts a new system after every two measures on medium screens', () => {
-    const exercise = generateRhythm({ difficulty: 'easy', measureCount: 5 }, () => 0.2)
+    const exercise = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 5 }, () => 0.2)
     const xml = toMusicXml(exercise, { measuresPerSystem: 2 })
 
     expect(xml.match(/<print new-system="yes"\/>/g)).toHaveLength(2)

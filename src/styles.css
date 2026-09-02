@@ -3,6 +3,7 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 80% 0%, #fff9ee 0, transparent 38%), #f4efe6; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
+body.modal-open { overflow: hidden; }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid #d55435; outline-offset: 3px; }
 .home-shell, .practice-shell { width: min(1440px, calc(100% - 32px)); margin: 0 auto; }
 .home-shell { padding: 72px 0 32px; }
@@ -23,11 +24,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .topbar h1 { margin: 2px 0 0; font-size: 1.35rem; }
 .topbar div > span { color: #8b8276; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
-.back-button, .text-button { border: 0; background: transparent; color: #33353a; }
+.back-button, .text-button, .settings-button { border: 0; background: transparent; color: #33353a; }
 .back-button { font-size: 1.8rem; padding: 8px; }
 .text-button { text-decoration: underline; text-underline-offset: 4px; }
+.settings-button { width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; }
+.settings-button:hover { background: rgba(23,26,33,.07); }
 .install-button { border: 1px solid #d55435; border-radius: 999px; background: transparent; color: #b94329; padding: 8px 14px; font-size: .85rem; font-weight: 700; white-space: nowrap; }
-.settings-panel { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)) auto auto auto; align-items: end; gap: 14px; padding: 26px 0 20px; }
+.settings-panel { display: grid; grid-template-columns: repeat(3, minmax(110px, 1fr)) auto auto auto; align-items: end; gap: 14px; padding: 26px 0 20px; }
 .field-group label { display: block; color: #655f58; font-size: .78rem; font-weight: 700; margin: 0 0 7px; }
 .field-group label span { font-weight: 400; }
 .field-group input, .field-group select { width: 100%; height: 44px; border: 1px solid #cfc6b9; border-radius: 10px; background: #fffdf9; padding: 0 12px; color: #22242a; }
@@ -55,6 +58,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 footer { margin-top: 52px; border-top: 1px solid #ded7ca; padding: 22px 0; color: #716c65; font-size: .8rem; }
 footer summary { width: max-content; cursor: pointer; }
 footer a { color: inherit; }
+.settings-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(23,26,33,.58); backdrop-filter: blur(5px); }
+.note-settings-dialog { width: min(720px, 100%); border: 1px solid #d8d0c4; border-radius: 24px; background: #fffdf9; padding: 28px; box-shadow: 0 28px 80px rgba(23,26,33,.28); }
+.note-settings-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid #ded7ca; }
+.note-settings-header p { margin: 0 0 5px; color: #d55435; font-size: .72rem; font-weight: 800; letter-spacing: .16em; }
+.note-settings-header h2 { margin: 0; font-size: 1.65rem; outline: 0; }
+.dialog-close { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: #5f5b56; font-size: 2rem; line-height: 1; }
+.dialog-close:hover { background: #f1ebe2; }
+.note-settings-description { margin: 20px 0 14px; color: #716c65; }
+.note-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.note-option { min-height: 136px; border: 1px solid #d6cec2; border-radius: 16px; background: #f7f2ea; color: #56534f; padding: 16px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: .82rem; font-weight: 700; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+.note-option:hover { transform: translateY(-2px); border-color: #baaa9b; }
+.note-option.selected { border-color: #d55435; background: #d55435; color: white; box-shadow: 0 9px 22px rgba(213,84,53,.2); }
+.note-symbol { min-height: 48px; display: grid; place-items: center; font-family: Georgia, serif; font-size: 2.5rem; line-height: 1; }
+.selection-hint { min-height: 20px; margin: 16px 0 0; color: #716c65; font-size: .78rem; }
 .update-toast { position: fixed; right: 20px; bottom: 20px; display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: #171a21; color: white; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,.22); }
 .update-toast button { border: 0; border-radius: 8px; background: #d55435; color: white; padding: 8px 12px; }
 .install-banner { position: fixed; right: 20px; bottom: 20px; width: min(420px, calc(100% - 40px)); padding: 18px; background: #171a21; color: white; border-radius: 14px; box-shadow: 0 15px 35px rgba(0,0,0,.22); }
@@ -80,6 +97,10 @@ footer a { color: inherit; }
   .install-button { padding: 7px 10px; }
   .install-banner, .update-toast { right: 10px; bottom: 10px; width: calc(100% - 20px); }
   .update-toast { justify-content: space-between; }
+  .settings-overlay { padding: 0; place-items: stretch; background: #fffdf9; }
+  .note-settings-dialog { width: 100%; min-height: 100dvh; border: 0; border-radius: 0; padding: 24px 20px; box-shadow: none; }
+  .note-options { grid-template-columns: repeat(2, 1fr); }
+  .note-option { min-height: 126px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

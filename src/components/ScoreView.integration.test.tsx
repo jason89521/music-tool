@@ -39,8 +39,8 @@ describe('ScoreView', () => {
   it('replaces the previous score when the exercise changes', async () => {
     scoreMockState.renderCount = 0
     scoreMockState.drawPartNames = true
-    const first = generateRhythm({ difficulty: 'easy', measureCount: 1 }, () => 0.1)
-    const second = generateRhythm({ difficulty: 'easy', measureCount: 2 }, () => 0.8)
+    const first = generateRhythm({ selectedMaterials: ['quarter'], measureCount: 1 }, () => 0.1)
+    const second = generateRhythm({ selectedMaterials: ['eighth'], measureCount: 2 }, () => 0.8)
     const view = render(<ScoreView exercise={first} activeEventIndex={-1} reduceMotion />)
     await waitFor(() => expect(view.container.querySelectorAll('svg')).toHaveLength(1))
     expect(scoreMockState.drawPartNames).toBe(false)

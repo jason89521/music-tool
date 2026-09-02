@@ -6,10 +6,10 @@ import {
   DEFAULT_GENERATION_SETTINGS,
   DEFAULT_PLAYBACK_SETTINGS,
   isValidBpm,
-  type Difficulty,
   type GenerationSettings,
   type PlaybackSettings,
   type RhythmExercise,
+  type RhythmMaterial,
 } from './domain/rhythm'
 import { loadState, saveState } from './storage'
 import { shouldShowInstallBanner, usePwaInstall } from './pwaInstall'
@@ -100,6 +100,7 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
   const [status, setStatus] = useState<PlaybackStatus>('idle')
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({ phase: 'ended', eventIndex: -1, countInBeat: 0 })
   const [audioError, setAudioError] = useState<string>()
+  const [noteSettingsOpen, setNoteSettingsOpen] = useState(false)
   const playerRef = useRef(new RhythmPlayer())
   const playbackRef = useRef(playback)
   const exerciseRef = useRef(exercise)
@@ -111,6 +112,27 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
     exerciseRef.current = exercise
     saveState({ generation, playback, exercise })
   }, [exercise, generation, playback])
+
+  useEffect(() => {
+    if (!noteSettingsOpen) return
+    const onPopState = () => setNoteSettingsOpen(false)
+    window.addEventListener('popstate', onPopState)
+    document.body.classList.add('modal-open')
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      document.body.classList.remove('modal-open')
+    }
+  }, [noteSettingsOpen])
+
+  const openNoteSettings = () => {
+    window.history.pushState({ noteSettings: true }, '')
+    setNoteSettingsOpen(true)
+  }
+
+  const closeNoteSettings = () => {
+    if (window.history.state?.noteSettings) window.history.back()
+    else setNoteSettingsOpen(false)
+  }
 
   const finish = (loopIteration = false) => {
     if (playbackRef.current.loop) {
@@ -147,6 +169,11 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Escape' && noteSettingsOpen) {
+        event.preventDefault()
+        closeNoteSettings()
+        return
+      }
       const target = event.target
       if (target instanceof HTMLInputElement || target instanceof HTMLButtonElement || target instanceof HTMLSelectElement) return
       if (event.code === 'Space') {
@@ -184,17 +211,12 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
         <div><span>Music Tool</span><h1>節奏練習器</h1></div>
         <div className="topbar-actions">
           {installButton}
+          <button className="settings-button" onClick={openNoteSettings} aria-label="音符設定" aria-haspopup="dialog">⚙</button>
           <button className="text-button" onClick={reset}>重設</button>
         </div>
       </header>
 
       <section className="settings-panel" aria-label="節奏與播放設定">
-        <div className="field-group">
-          <label htmlFor="difficulty">練習難度</label>
-          <select id="difficulty" value={generation.difficulty} onChange={(event) => setGeneration((current) => ({ ...current, difficulty: event.target.value as Difficulty }))}>
-            <option value="easy">簡單</option><option value="medium">中等</option><option value="hard">困難</option>
-          </select>
-        </div>
         <div className="field-group">
           <label htmlFor="measures">小節數</label>
           <input id="measures" type="number" min="1" max="16" value={generation.measureCount} onChange={(event) => setGeneration((current) => ({ ...current, measureCount: Number(event.target.value) }))} />
@@ -234,7 +256,83 @@ function RhythmPractice({ onHome, installButton }: { onHome: () => void; install
       </section>
       {audioError && <p className="error" role="alert">{audioError}</p>}
       <Credits />
+      {noteSettingsOpen && (
+        <NoteSettingsDialog
+          selectedMaterials={generation.selectedMaterials}
+          onChange={(selectedMaterials) => setGeneration((current) => ({ ...current, selectedMaterials }))}
+          onClose={closeNoteSettings}
+        />
+      )}
     </main>
+  )
+}
+
+const MATERIAL_OPTIONS: ReadonlyArray<{ material: RhythmMaterial; label: string; symbol: string }> = [
+  { material: 'quarter', label: '四分音符', symbol: '♩' },
+  { material: 'eighth', label: '八分音符', symbol: '♪' },
+  { material: 'sixteenth', label: '十六分音符', symbol: '♬' },
+  { material: 'eighthTriplet', label: '八分三連音', symbol: '♪³' },
+  { material: 'quarterTriplet', label: '四分三連音', symbol: '♩³' },
+]
+
+function NoteSettingsDialog({
+  selectedMaterials,
+  onChange,
+  onClose,
+}: {
+  selectedMaterials: RhythmMaterial[]
+  onChange: (selectedMaterials: RhythmMaterial[]) => void
+  onClose: () => void
+}) {
+  const [selectionHint, setSelectionHint] = useState<string>()
+  const titleRef = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => { titleRef.current?.focus() }, [])
+
+  const toggleMaterial = (material: RhythmMaterial) => {
+    if (selectedMaterials.includes(material)) {
+      if (selectedMaterials.length === 1) {
+        setSelectionHint('請至少保留一種節奏素材。')
+        return
+      }
+      onChange(selectedMaterials.filter((selected) => selected !== material))
+    } else {
+      onChange([...selectedMaterials, material])
+    }
+    setSelectionHint(undefined)
+  }
+
+  return (
+    <div className="settings-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <section className="note-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="note-settings-title">
+        <header className="note-settings-header">
+          <div>
+            <p>NOTE</p>
+            <h2 id="note-settings-title" ref={titleRef} tabIndex={-1}>音符設定</h2>
+          </div>
+          <button className="dialog-close" onClick={onClose} aria-label="關閉音符設定">×</button>
+        </header>
+        <p className="note-settings-description">選擇練習中可以出現的節奏素材</p>
+        <div className="note-options" aria-label="可出現的節奏素材">
+          {MATERIAL_OPTIONS.map(({ material, label, symbol }) => {
+            const selected = selectedMaterials.includes(material)
+            return (
+              <button
+                key={material}
+                className={`note-option${selected ? ' selected' : ''}`}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => toggleMaterial(material)}
+              >
+                <span className="note-symbol" aria-hidden="true">{symbol}</span>
+                <span>{label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="selection-hint" role="status">{selectionHint ?? '設定將從下一次產生節奏開始套用。'}</p>
+      </section>
+    </div>
   )
 }
 

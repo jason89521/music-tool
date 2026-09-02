@@ -1,9 +1,8 @@
 export const TICKS_PER_QUARTER = 24
 export const TICKS_PER_MEASURE = TICKS_PER_QUARTER * 4
 
-export type Difficulty = 'easy' | 'medium' | 'hard'
-
 export type NoteValue = 'quarter' | 'eighth' | 'sixteenth'
+export type RhythmMaterial = NoteValue | 'eighthTriplet' | 'quarterTriplet'
 
 export type RhythmEvent = {
   id: string
@@ -26,13 +25,12 @@ export type RhythmMeasure = {
 export type RhythmExercise = {
   version: 1
   timeSignature: { beats: number; beatType: number }
-  difficulty: Difficulty
   measures: RhythmMeasure[]
 }
 
 export type GenerationSettings = {
-  difficulty: Difficulty
   measureCount: number
+  selectedMaterials: RhythmMaterial[]
 }
 
 export type PlaybackSettings = {
@@ -54,8 +52,8 @@ export const DEFAULT_PLAYBACK_SETTINGS: PlaybackSettings = {
 }
 
 export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
-  difficulty: 'easy',
   measureCount: 4,
+  selectedMaterials: ['quarter', 'eighth', 'sixteenth'],
 }
 
 export function isValidBpm(value: number): boolean {
