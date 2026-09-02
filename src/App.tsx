@@ -12,6 +12,7 @@ import {
   type RhythmExercise,
 } from './domain/rhythm'
 import { loadState, saveState } from './storage'
+import { shouldShowInstallBanner, usePwaInstall } from './pwaInstall'
 
 const ScoreView = lazy(() => import('./components/ScoreView').then((module) => ({ default: module.ScoreView })))
 
@@ -37,40 +38,59 @@ function usePathname(): [string, (path: string) => void] {
 export default function App() {
   const [pathname, navigate] = usePathname()
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
+  const { canInstall, showBanner, dismissBanner, requestInstall } = usePwaInstall()
 
-  if (pathname === '/rhythm-practice') {
-    return <RhythmPractice onHome={() => navigate('/')} />
-  }
+  const installButton = canInstall
+    ? <button className="install-button" onClick={() => void requestInstall()}>安裝 App</button>
+    : null
 
   return (
-    <main className="home-shell">
-      <header className="hero">
-        <p className="eyebrow">YOUR PRACTICE SPACE</p>
-        <h1>Music Tool</h1>
-        <p>把每一次練習，變成更清楚、更專注的進步。</p>
-      </header>
-      <section className="tool-grid" aria-label="音樂工具">
-        <button className="tool-card" onClick={() => navigate('/rhythm-practice')}>
-          <span className="tool-icon" aria-hidden="true">♩</span>
-          <span>
-            <strong>節奏練習器</strong>
-            <small>產生、閱讀並跟奏不同節奏</small>
-          </span>
-          <span aria-hidden="true">→</span>
-        </button>
-      </section>
-      <Credits />
+    <>
+      {pathname === '/rhythm-practice'
+        ? <RhythmPractice onHome={() => navigate('/')} installButton={installButton} />
+        : (
+          <main className="home-shell">
+            <header className="hero">
+              <div className="hero-topline">
+                <p className="eyebrow">YOUR PRACTICE SPACE</p>
+                {installButton}
+              </div>
+              <h1>Music Tool</h1>
+              <p>把每一次練習，變成更清楚、更專注的進步。</p>
+            </header>
+            <section className="tool-grid" aria-label="音樂工具">
+              <button className="tool-card" onClick={() => navigate('/rhythm-practice')}>
+                <span className="tool-icon" aria-hidden="true">♩</span>
+                <span>
+                  <strong>節奏練習器</strong>
+                  <small>產生、閱讀並跟奏不同節奏</small>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </section>
+            <Credits />
+          </main>
+        )}
       {needRefresh && (
         <div className="update-toast" role="status">
           <span>Music Tool 有新版本。</span>
           <button onClick={() => void updateServiceWorker(true)}>立即更新</button>
         </div>
       )}
-    </main>
+      {shouldShowInstallBanner(showBanner, needRefresh) && (
+        <aside className="install-banner" aria-label="安裝 Music Tool">
+          <p>將音樂工具安裝到桌面，離線也能快速開啟。</p>
+          <div>
+            <button className="install-banner-later" onClick={dismissBanner}>稍後</button>
+            <button onClick={() => void requestInstall()}>安裝 App</button>
+          </div>
+        </aside>
+      )}
+    </>
   )
 }
 
-function RhythmPractice({ onHome }: { onHome: () => void }) {
+function RhythmPractice({ onHome, installButton }: { onHome: () => void; installButton: React.ReactNode }) {
   const initial = useMemo(() => loadState(), [])
   const [generation, setGeneration] = useState<GenerationSettings>(initial?.generation ?? DEFAULT_GENERATION_SETTINGS)
   const [playback, setPlayback] = useState<PlaybackSettings>(initial?.playback ?? DEFAULT_PLAYBACK_SETTINGS)
@@ -162,7 +182,10 @@ function RhythmPractice({ onHome }: { onHome: () => void }) {
       <header className="topbar">
         <button className="back-button" onClick={onHome} aria-label="回到 Music Tool 首頁">←</button>
         <div><span>Music Tool</span><h1>節奏練習器</h1></div>
-        <button className="text-button" onClick={reset}>重設</button>
+        <div className="topbar-actions">
+          {installButton}
+          <button className="text-button" onClick={reset}>重設</button>
+        </div>
       </header>
 
       <section className="settings-panel" aria-label="節奏與播放設定">

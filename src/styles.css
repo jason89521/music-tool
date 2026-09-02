@@ -7,6 +7,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .home-shell, .practice-shell { width: min(1440px, calc(100% - 32px)); margin: 0 auto; }
 .home-shell { padding: 72px 0 32px; }
 .hero { max-width: 760px; padding: 52px 0; }
+.hero-topline { min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .eyebrow { color: #d55435; font-weight: 700; letter-spacing: .18em; font-size: .78rem; }
 .hero h1 { margin: 8px 0 12px; font-size: clamp(3.5rem, 9vw, 7rem); line-height: .95; letter-spacing: -.065em; color: #171a21; }
 .hero > p:last-child { color: #5e6065; font-size: 1.15rem; }
@@ -21,9 +22,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .topbar { min-height: 96px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; border-bottom: 1px solid #ded7ca; }
 .topbar h1 { margin: 2px 0 0; font-size: 1.35rem; }
 .topbar div > span { color: #8b8276; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
 .back-button, .text-button { border: 0; background: transparent; color: #33353a; }
 .back-button { font-size: 1.8rem; padding: 8px; }
 .text-button { text-decoration: underline; text-underline-offset: 4px; }
+.install-button { border: 1px solid #d55435; border-radius: 999px; background: transparent; color: #b94329; padding: 8px 14px; font-size: .85rem; font-weight: 700; white-space: nowrap; }
 .settings-panel { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)) auto auto auto; align-items: end; gap: 14px; padding: 26px 0 20px; }
 .field-group label { display: block; color: #655f58; font-size: .78rem; font-weight: 700; margin: 0 0 7px; }
 .field-group label span { font-weight: 400; }
@@ -54,6 +57,11 @@ footer summary { width: max-content; cursor: pointer; }
 footer a { color: inherit; }
 .update-toast { position: fixed; right: 20px; bottom: 20px; display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: #171a21; color: white; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,.22); }
 .update-toast button { border: 0; border-radius: 8px; background: #d55435; color: white; padding: 8px 12px; }
+.install-banner { position: fixed; right: 20px; bottom: 20px; width: min(420px, calc(100% - 40px)); padding: 18px; background: #171a21; color: white; border-radius: 14px; box-shadow: 0 15px 35px rgba(0,0,0,.22); }
+.install-banner p { margin: 0 0 14px; line-height: 1.5; }
+.install-banner div { display: flex; justify-content: flex-end; gap: 10px; }
+.install-banner button { border: 0; border-radius: 8px; background: #d55435; color: white; padding: 9px 14px; font-weight: 700; }
+.install-banner .install-banner-later { background: transparent; color: #e8e3db; }
 
 @media (max-width: 960px) {
   .settings-panel { grid-template-columns: repeat(2, 1fr); }
@@ -67,6 +75,11 @@ footer a { color: inherit; }
   .toggle { justify-content: center; border: 1px solid #d5cdc1; border-radius: 10px; }
   .score-card { padding: 8px; min-height: 300px; }
   .score { min-height: 280px; }
+  .topbar { gap: 8px; }
+  .topbar-actions { gap: 4px; }
+  .install-button { padding: 7px 10px; }
+  .install-banner, .update-toast { right: 10px; bottom: 10px; width: calc(100% - 20px); }
+  .update-toast { justify-content: space-between; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
