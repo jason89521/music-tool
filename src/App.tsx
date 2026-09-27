@@ -14,6 +14,7 @@ import {
 import { loadState, saveState } from './storage'
 import { shouldShowInstallBanner, usePwaInstall } from './pwaInstall'
 import type { ScorePlaybackTarget } from './score/toMusicXml'
+import { ChordReference } from './components/ChordReference'
 
 const ScoreView = lazy(() => import('./components/ScoreView').then((module) => ({ default: module.ScoreView })))
 
@@ -49,7 +50,9 @@ export default function App() {
     <>
       {pathname === '/rhythm-practice'
         ? <RhythmPractice onHome={() => navigate('/')} installButton={installButton} />
-        : (
+        : pathname === '/chords'
+          ? <ChordReference onHome={() => navigate('/')} />
+          : (
           <main className="home-shell">
             <header className="hero">
               <div className="hero-topline">
@@ -65,6 +68,14 @@ export default function App() {
                 <span>
                   <strong>節奏練習器</strong>
                   <small>產生、閱讀並跟奏不同節奏</small>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <button className="tool-card" onClick={() => navigate('/chords')}>
+                <span className="tool-icon" aria-hidden="true">♬</span>
+                <span>
+                  <strong>和弦表</strong>
+                  <small>查看 12 個調的和弦組成音與音程結構</small>
                 </span>
                 <span aria-hidden="true">→</span>
               </button>
