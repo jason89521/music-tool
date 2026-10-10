@@ -17,6 +17,7 @@ import type { ScorePlaybackTarget } from './score/toMusicXml'
 import { ChordReference } from './components/ChordReference'
 
 const ScoreView = lazy(() => import('./components/ScoreView').then((module) => ({ default: module.ScoreView })))
+const AudioPractice = lazy(() => import('./components/AudioPractice').then((module) => ({ default: module.AudioPractice })))
 
 type PlaybackStatus = 'idle' | 'playing' | 'paused'
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -52,6 +53,8 @@ export default function App() {
         ? <RhythmPractice onHome={() => navigate('/')} installButton={installButton} />
         : pathname === '/chords'
           ? <ChordReference onHome={() => navigate('/')} />
+          : pathname === '/audio-practice'
+            ? <Suspense fallback={<main className="audio-practice-shell">載入音源練習器…</main>}><AudioPractice onHome={() => navigate('/')} /></Suspense>
           : (
           <main className="home-shell">
             <header className="hero">
@@ -76,6 +79,14 @@ export default function App() {
                 <span>
                   <strong>和弦表</strong>
                   <small>查看 12 個調的和弦組成音與音程結構</small>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <button className="tool-card" onClick={() => navigate('/audio-practice')}>
+                <span className="tool-icon" aria-hidden="true">♫</span>
+                <span>
+                  <strong>音源練習器</strong>
+                  <small>匯入音源、儲存段落並循環練習</small>
                 </span>
                 <span aria-hidden="true">→</span>
               </button>

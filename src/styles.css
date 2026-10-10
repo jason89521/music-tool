@@ -255,6 +255,374 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   border: 0;
 }
 
+.audio-practice-shell {
+  width: min(1440px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) 0 max(32px, env(safe-area-inset-bottom));
+}
+.audio-practice-header {
+  padding: 6px 0 26px;
+}
+.audio-practice-header .back-button {
+  margin-bottom: 22px;
+}
+.audio-practice-header .eyebrow {
+  margin: 0 0 10px;
+}
+.audio-practice-header h1 {
+  margin: 0 0 10px;
+  color: #171a21;
+  font-size: clamp(2.8rem, 7vw, 5.4rem);
+  letter-spacing: -.06em;
+  line-height: .96;
+}
+.audio-practice-header > p:last-child {
+  margin: 0;
+  color: #5e6065;
+}
+.audio-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.audio-library,
+.audio-workspace {
+  min-width: 0;
+  border: 1px solid #ded7ca;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .68);
+  box-shadow: 0 15px 45px rgba(62, 50, 37, .07);
+}
+.audio-library {
+  padding: 20px;
+}
+.audio-library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.audio-library-heading h2,
+.audio-track-heading h2,
+.audio-section-heading h3 {
+  margin: 0;
+  color: #22242a;
+}
+.audio-library-heading span {
+  color: #8b8276;
+  font-size: .82rem;
+}
+.audio-import-button {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  border: 1px solid #d55435;
+  border-radius: 12px;
+  background: #d55435;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+.audio-import-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.audio-library-note {
+  margin: 10px 0 18px;
+  color: #716c65;
+  font-size: .75rem;
+}
+.audio-song-list {
+  display: grid;
+  gap: 8px;
+}
+.audio-song-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+.audio-song-item.selected {
+  border-color: #e4b6a8;
+  background: #fff8f4;
+}
+.audio-song-select {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: #33353a;
+  padding: 8px;
+  text-align: left;
+}
+.audio-song-select strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audio-song-select small {
+  color: #8b8276;
+  font-size: .72rem;
+}
+.audio-icon-button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #716c65;
+  font-size: 1.2rem;
+}
+.audio-icon-button:hover {
+  background: #f1ebe2;
+  color: #a12e22;
+}
+.audio-empty-library,
+.audio-no-sections {
+  color: #716c65;
+  font-size: .82rem;
+  line-height: 1.55;
+}
+.audio-workspace {
+  min-height: 500px;
+  padding: 24px;
+}
+.audio-empty-state {
+  min-height: 450px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+.audio-empty-state > span {
+  color: #d55435;
+  font-size: 3rem;
+}
+.audio-empty-state h2 {
+  margin: 12px 0 6px;
+  font-size: 1.2rem;
+}
+.audio-empty-state p {
+  color: #716c65;
+}
+.audio-track-heading,
+.audio-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.audio-track-heading h2 {
+  overflow-wrap: anywhere;
+  font-size: 1.35rem;
+}
+.audio-track-heading small {
+  display: block;
+  margin-top: 5px;
+  color: #8b8276;
+}
+.audio-track-heading form,
+.audio-time-editor form {
+  display: flex;
+  gap: 8px;
+}
+.audio-track-heading input,
+.audio-time-editor input {
+  min-width: 0;
+  height: 42px;
+  border: 1px solid #cfc6b9;
+  border-radius: 9px;
+  background: #fffdf9;
+  padding: 0 10px;
+}
+.audio-track-heading form button,
+.audio-time-editor form button {
+  border: 0;
+  border-radius: 9px;
+  background: #d55435;
+  color: white;
+  padding: 0 12px;
+}
+.audio-text-button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #b94329;
+  font-size: .82rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.audio-waveform {
+  width: 100%;
+  min-height: 170px;
+  margin: 24px 0 12px;
+  border: 1px solid #e6ded3;
+  border-radius: 12px;
+  background: #fffdf9;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.audio-waveform wave {
+  max-width: 100%;
+}
+.audio-player-controls {
+  display: grid;
+  grid-template-columns: 48px auto minmax(80px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+.audio-play-button,
+.audio-loop-button {
+  min-height: 44px;
+  border: 1px solid #d8d0c4;
+  border-radius: 11px;
+  background: #fffdf9;
+  color: #33353a;
+}
+.audio-play-button {
+  background: #d55435;
+  color: white;
+  font-size: 1.1rem;
+}
+.audio-loop-button {
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.audio-loop-button.active {
+  border-color: #d55435;
+  color: #b94329;
+}
+.audio-loop-button span {
+  font-size: .78rem;
+}
+.audio-position {
+  color: #716c65;
+  font-variant-numeric: tabular-nums;
+  font-size: .78rem;
+}
+.audio-seek {
+  width: 100%;
+  accent-color: #d55435;
+}
+.audio-section-panel {
+  margin-top: 28px;
+  border-top: 1px solid #ded7ca;
+  padding-top: 20px;
+}
+.audio-section-heading {
+  margin-bottom: 14px;
+}
+.audio-section-heading h3 {
+  font-size: 1rem;
+}
+.audio-section-heading p {
+  margin: 5px 0 0;
+  color: #716c65;
+  font-size: .78rem;
+}
+.audio-time-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+.audio-time-editor label {
+  display: grid;
+  gap: 5px;
+  color: #655f58;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.audio-time-editor label input {
+  width: 112px;
+  font-variant-numeric: tabular-nums;
+}
+.audio-time-editor label input[aria-invalid="true"] {
+  border-color: #a12e22;
+}
+.audio-new-section-name {
+  flex: 1 1 120px;
+}
+.audio-save-section {
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  background: #d55435;
+  color: white;
+  padding: 0 14px;
+  font-weight: 700;
+}
+.audio-save-section:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.audio-delete-section {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: #a12e22;
+  font-size: .8rem;
+}
+.audio-inline-error,
+.audio-error {
+  color: #a12e22;
+  font-size: .82rem;
+}
+.audio-section-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.audio-section-chip {
+  min-height: 54px;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  border: 1px solid #ded7ca;
+  border-radius: 11px;
+  background: #fffdf9;
+  color: #33353a;
+  padding: 8px 12px;
+  text-align: left;
+}
+.audio-section-chip.selected {
+  border-color: #d55435;
+  background: #fff5f0;
+}
+.audio-section-chip span {
+  color: #716c65;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+}
+.audio-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  border: 1px solid #e5b2a8;
+  border-radius: 12px;
+  background: #fff8f4;
+  padding: 12px 16px;
+}
+.audio-error button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.3rem;
+}
+
 @media (max-width: 560px) {
   .home-shell { width: min(100% - 20px, 1440px); }
   .practice-shell { width: 100%; padding-inline: 10px; background: radial-gradient(circle at 80% 0%, #fff9ee 0, transparent 38%), #f4efe6; }
@@ -272,6 +640,47 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .dialog-field-grid { grid-template-columns: 1fr 1fr; }
   .note-options { grid-template-columns: repeat(2, 1fr); }
   .note-option { min-height: 126px; }
+}
+@media (max-width: 760px) {
+  .audio-practice-shell {
+    width: min(100% - 20px, 1440px);
+    padding-top: 18px;
+  }
+  .audio-practice-header {
+    padding-bottom: 18px;
+  }
+  .audio-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .audio-library {
+    padding: 14px;
+  }
+  .audio-song-list {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  .audio-workspace {
+    min-height: 460px;
+    padding: 16px 12px;
+  }
+  .audio-waveform {
+    min-height: 150px;
+    margin: 18px 0 12px;
+  }
+  .audio-player-controls {
+    grid-template-columns: 44px auto minmax(40px, 1fr) auto;
+    gap: 8px;
+  }
+  .audio-loop-button {
+    grid-column: 1 / -1;
+    min-height: 38px;
+  }
+  .audio-time-editor {
+    gap: 8px;
+  }
+  .audio-time-editor label input {
+    width: 100px;
+  }
 }
 @media (max-width: 760px) {
   .chord-shell {
