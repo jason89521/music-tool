@@ -384,49 +384,49 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
   }
 
   return (
-    <main className="audio-practice-shell">
-      <header className="audio-practice-header">
-        <button className="back-button" onClick={onHome}>← 所有工具</button>
-        <p className="eyebrow">LISTEN · REPEAT · PRACTICE</p>
-        <h1>音源練習器</h1>
-        <p>匯入自己的音源，選取段落並循環練習。</p>
+    <main className="mx-auto min-h-screen w-[min(1440px,calc(100%_-_32px))] pt-[max(20px,env(safe-area-inset-top))] pb-[max(32px,env(safe-area-inset-bottom))] max-[760px]:w-[min(1440px,calc(100%_-_20px))] max-[760px]:pt-[18px]">
+      <header className="px-0 pt-[6px] pb-[26px] max-[760px]:pb-[18px]">
+        <button className="mb-[22px] border-0 bg-transparent p-0 text-[.9rem] font-bold text-accent-dark hover:text-accent" onClick={onHome}>← 所有工具</button>
+        <p className="mb-[10px] text-[.78rem] font-bold tracking-[.18em] text-accent">LISTEN · REPEAT · PRACTICE</p>
+        <h1 className="mb-[10px] text-[clamp(2.8rem,7vw,5.4rem)] leading-[.96] tracking-[-.06em] text-[#171a21]">音源練習器</h1>
+        <p className="m-0 text-[#5e6065]">匯入自己的音源，選取段落並循環練習。</p>
       </header>
-      {error && <p className="audio-error" role="alert">{error}<button aria-label="關閉錯誤訊息" onClick={() => setError(undefined)}>×</button></p>}
-      <section className="audio-layout" aria-label="音源練習器">
-        <aside className="audio-library">
-          <div className="audio-library-heading"><h2>我的音源</h2><span>{songs.length}</span></div>
-          <label className="audio-import-button">
-            <input type="file" accept="audio/mpeg,audio/mp4,audio/wav,.mp3,.m4a,.wav" disabled={busy} onChange={(event) => { void importFile(event.target.files?.[0]); event.currentTarget.value = '' }} />
+      {error && <p className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-[#e5b2a8] bg-[#fff8f4] px-4 py-3 text-[#a12e22]" role="alert">{error}<button className="border-0 bg-transparent text-[1.3rem] text-inherit" aria-label="關閉錯誤訊息" onClick={() => setError(undefined)}>×</button></p>}
+      <section className="grid grid-cols-[minmax(230px,300px)_minmax(0,1fr)] items-start gap-5 max-[760px]:grid-cols-1 max-[760px]:gap-3" aria-label="音源練習器">
+        <aside className="min-w-0 rounded-[20px] border border-border bg-white/[.68] p-5 shadow-[0_15px_45px_rgba(62,50,37,0.07)] max-[760px]:p-[14px]">
+          <div className="mb-[14px] flex items-center justify-between"><h2 className="m-0 text-ink">我的音源</h2><span className="text-[.82rem] text-[#8b8276]">{songs.length}</span></div>
+          <label className="grid min-h-12 cursor-pointer place-items-center rounded-xl border border-accent bg-accent font-extrabold text-white">
+            <input className="absolute size-px overflow-hidden [clip:rect(0,0,0,0)]" type="file" accept="audio/mpeg,audio/mp4,audio/wav,.mp3,.m4a,.wav" disabled={busy} onChange={(event) => { void importFile(event.target.files?.[0]); event.currentTarget.value = '' }} />
             {busy ? '正在讀取音檔…' : '+ 匯入音檔'}
           </label>
-          <p className="audio-library-note">音檔只會儲存在這台裝置上。</p>
-          <div className="audio-song-list">
+          <p className="my-[10px] mb-[18px] text-xs text-muted">音檔只會儲存在這台裝置上。</p>
+          <div className="grid gap-2">
             {songs.map((song) => (
-              <div key={song.id} className={`audio-song-item${song.id === selectedSongId ? ' selected' : ''}`}>
-                <button className="audio-song-select" onClick={() => {
+              <div key={song.id} className={`grid grid-cols-[minmax(0,1fr)_34px] items-center gap-1 rounded-xl border p-[5px] ${song.id === selectedSongId ? 'border-[#e4b6a8] bg-[#fff8f4]' : 'border-transparent'}`}>
+                <button className="grid min-w-0 gap-[5px] border-0 bg-transparent p-2 text-left text-[#33353a]" onClick={() => {
                   setSelectedSongId(song.id)
                   setSelectedSectionId(undefined)
                   setPosition(0)
                   void savePreference({ key: 'last-opened', songId: song.id, position: 0 })
                     .catch(() => setError('選取的音源無法儲存至本機設定。'))
                 }}>
-                  <strong>{song.title}</strong><small>{formatTime(song.duration)}</small>
+                  <strong className="overflow-hidden text-ellipsis whitespace-nowrap">{song.title}</strong><small className="text-[.72rem] text-[#8b8276]">{formatTime(song.duration)}</small>
                 </button>
-                <button className="audio-icon-button" aria-label={`刪除 ${song.title}`} onClick={() => void removeSong(song)}>×</button>
+                <button className="size-8 rounded-full border-0 bg-transparent text-[1.2rem] text-muted hover:bg-[#f1ebe2] hover:text-[#a12e22]" aria-label={`刪除 ${song.title}`} onClick={() => void removeSong(song)}>×</button>
               </div>
             ))}
-            {songs.length === 0 && <p className="audio-empty-library">匯入 MP3、M4A 或 WAV，開始建立練習清單。</p>}
+            {songs.length === 0 && <p className="text-[.82rem] leading-[1.55] text-muted">匯入 MP3、M4A 或 WAV，開始建立練習清單。</p>}
           </div>
         </aside>
-        <section className="audio-workspace" aria-label="音源播放器">
-          {!selectedSong ? <div className="audio-empty-state"><span aria-hidden="true">♫</span><h2>選擇一段音源開始練習</h2><p>你匯入的音檔會留在這台裝置。</p></div> : <>
-            <div className="audio-track-heading">
-              <div>{renameSong ? <form onSubmit={(event) => { event.preventDefault(); void rename('song', String(new FormData(event.currentTarget).get('title') ?? '')) }}><input autoFocus name="title" defaultValue={selectedSong.title} aria-label="音源名稱" /><button>儲存</button></form> : <><h2>{selectedSong.title}</h2><small>{selectedSong.fileName}</small></>}</div>
-              <button className="audio-text-button" onClick={() => setRenameSong((value) => !value)}>{renameSong ? '取消' : '重新命名'}</button>
+        <section className="min-h-[500px] min-w-0 rounded-[20px] border border-border bg-white/[.68] p-6 shadow-[0_15px_45px_rgba(62,50,37,0.07)] max-[760px]:min-h-[460px] max-[760px]:p-4 max-[760px]:px-3" aria-label="音源播放器">
+          {!selectedSong ? <div className="grid min-h-[450px] content-center justify-items-center text-center"><span className="text-5xl text-accent" aria-hidden="true">♫</span><h2 className="mt-3 mb-1 text-xl">選擇一段音源開始練習</h2><p className="text-muted">你匯入的音檔會留在這台裝置。</p></div> : <>
+            <div className="flex items-center justify-between gap-4">
+              <div>{renameSong ? <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void rename('song', String(new FormData(event.currentTarget).get('title') ?? '')) }}><input className="h-[42px] min-w-0 rounded-[9px] border border-[#cfc6b9] bg-[#fffdf9] px-[10px]" autoFocus name="title" defaultValue={selectedSong.title} aria-label="音源名稱" /><button className="rounded-[9px] border-0 bg-accent px-3 text-white">儲存</button></form> : <><h2 className="m-0 break-words text-[1.35rem]">{selectedSong.title}</h2><small className="mt-[5px] block text-[#8b8276]">{selectedSong.fileName}</small></>}</div>
+              <button className="shrink-0 border-0 bg-transparent text-[.82rem] font-bold text-accent-dark underline underline-offset-[3px]" onClick={() => setRenameSong((value) => !value)}>{renameSong ? '取消' : '重新命名'}</button>
             </div>
-            <div ref={waveformRef} className="audio-waveform" aria-label="音源波形；拖曳建立 A–B 段落" />
-            <div className="audio-player-controls">
-              <button className="audio-play-button" aria-label={playing ? '暫停' : '播放'} onClick={() => {
+            <div ref={waveformRef} className="my-6 mb-3 min-h-[170px] w-full touch-pan-y overflow-hidden rounded-xl border border-[#e6ded3] bg-[#fffdf9] max-[760px]:my-[18px] max-[760px]:mb-3 max-[760px]:min-h-[150px]" aria-label="音源波形；拖曳建立 A–B 段落" />
+            <div className="grid grid-cols-[48px_auto_minmax(80px,1fr)_auto_auto] items-center gap-3 max-[760px]:grid-cols-[44px_auto_minmax(40px,1fr)_auto] max-[760px]:gap-2">
+              <button className="min-h-11 rounded-[11px] border border-[#d8d0c4] bg-accent text-[1.1rem] text-white" aria-label={playing ? '暫停' : '播放'} onClick={() => {
                 const waveSurfer = waveSurferRef.current
                 if (!waveSurfer || !enteredIntervalValid) return
                 if (playing) waveSurfer.pause()
@@ -435,25 +435,25 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
                   void waveSurfer.play()
                 }
               }}>{playing ? 'Ⅱ' : '▶'}</button>
-              <span className="audio-position">{formatTime(position)}</span>
-              <input className="audio-seek" type="range" min="0" max={selectedSong.duration} step="0.01" value={Math.min(position, selectedSong.duration)} aria-label="播放位置" onChange={(event) => waveSurferRef.current?.setTime(Number(event.target.value))} />
-              <span className="audio-position">{formatTime(selectedSong.duration)}</span>
-              <button className={`audio-loop-button${loop ? ' active' : ''}`} aria-pressed={loop} onClick={() => setLoop((value) => !value)}>↻ <span>循環</span></button>
+              <span className="text-[.78rem] tabular-nums text-muted">{formatTime(position)}</span>
+              <input className="w-full accent-accent" type="range" min="0" max={selectedSong.duration} step="0.01" value={Math.min(position, selectedSong.duration)} aria-label="播放位置" onChange={(event) => waveSurferRef.current?.setTime(Number(event.target.value))} />
+              <span className="text-[.78rem] tabular-nums text-muted">{formatTime(selectedSong.duration)}</span>
+              <button className={`min-h-11 whitespace-nowrap rounded-[11px] border px-[10px] max-[760px]:col-span-full max-[760px]:min-h-[38px] ${loop ? 'border-accent text-accent-dark' : 'border-[#d8d0c4] text-[#33353a]'}`} aria-pressed={loop} onClick={() => setLoop((value) => !value)}>↻ <span className="text-[.78rem]">循環</span></button>
             </div>
-            <div className="audio-section-panel">
-              <div className="audio-section-heading"><div><h3>練習段落</h3><p>在波形上拖曳，或編輯 A、B 時間。</p></div>{selectedSection && <button className="audio-text-button" onClick={() => setRenameSection((value) => !value)}>{renameSection ? '取消' : '重新命名'}</button>}</div>
-              <div className="audio-time-editor">
-                <label>A 起點<input aria-label="A 起點" value={startText} aria-invalid={!enteredIntervalValid} onChange={(event) => updateTime('start', event.target.value)} onBlur={() => activeInterval && setStartText(formatTime(activeInterval.start))} /></label>
+            <div className="mt-7 border-t border-border pt-5">
+              <div className="mb-[14px] flex items-center justify-between gap-4"><div><h3 className="m-0 text-base">練習段落</h3><p className="mt-[5px] mb-0 text-[.78rem] text-muted">在波形上拖曳，或編輯 A、B 時間。</p></div>{selectedSection && <button className="shrink-0 border-0 bg-transparent text-[.82rem] font-bold text-accent-dark underline underline-offset-[3px]" onClick={() => setRenameSection((value) => !value)}>{renameSection ? '取消' : '重新命名'}</button>}</div>
+              <div className="flex flex-wrap items-end gap-[10px]">
+                <label className="grid gap-[5px] text-[.72rem] font-bold text-[#655f58]">A 起點<input className="h-[42px] w-28 min-w-0 rounded-[9px] border border-[#cfc6b9] bg-[#fffdf9] px-[10px] tabular-nums aria-invalid:border-[#a12e22]" aria-label="A 起點" value={startText} aria-invalid={!enteredIntervalValid} onChange={(event) => updateTime('start', event.target.value)} onBlur={() => activeInterval && setStartText(formatTime(activeInterval.start))} /></label>
                 <span aria-hidden="true">→</span>
-                <label>B 終點<input aria-label="B 終點" value={endText} aria-invalid={!enteredIntervalValid} onChange={(event) => updateTime('end', event.target.value)} onBlur={() => activeInterval && setEndText(formatTime(activeInterval.end))} /></label>
-                {draft && <><input className="audio-new-section-name" aria-label="新段落名稱" placeholder={`段落 ${sections.length + 1}`} value={sectionName} onChange={(event) => setSectionName(event.target.value)} /><button className="audio-save-section" disabled={!enteredIntervalValid} onClick={() => void saveDraft()}>儲存段落</button></>}
-                {selectedSection && renameSection && <form onSubmit={(event) => { event.preventDefault(); void rename('section', String(new FormData(event.currentTarget).get('name') ?? '')) }}><input autoFocus name="name" defaultValue={selectedSection.name} aria-label="段落名稱" /><button>儲存</button></form>}
-                {selectedSection && <button className="audio-delete-section" onClick={() => void removeSelectedSection()}>刪除段落</button>}
+                <label className="grid gap-[5px] text-[.72rem] font-bold text-[#655f58]">B 終點<input className="h-[42px] w-28 min-w-0 rounded-[9px] border border-[#cfc6b9] bg-[#fffdf9] px-[10px] tabular-nums aria-invalid:border-[#a12e22]" aria-label="B 終點" value={endText} aria-invalid={!enteredIntervalValid} onChange={(event) => updateTime('end', event.target.value)} onBlur={() => activeInterval && setEndText(formatTime(activeInterval.end))} /></label>
+                {draft && <><input className="min-w-0 h-[42px] flex-[1_1_120px] rounded-[9px] border border-[#cfc6b9] bg-[#fffdf9] px-[10px]" aria-label="新段落名稱" placeholder={`段落 ${sections.length + 1}`} value={sectionName} onChange={(event) => setSectionName(event.target.value)} /><button className="min-h-[42px] rounded-[9px] border-0 bg-accent px-[14px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={!enteredIntervalValid} onClick={() => void saveDraft()}>儲存段落</button></>}
+                {selectedSection && renameSection && <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void rename('section', String(new FormData(event.currentTarget).get('name') ?? '')) }}><input className="h-[42px] min-w-0 rounded-[9px] border border-[#cfc6b9] bg-[#fffdf9] px-[10px]" autoFocus name="name" defaultValue={selectedSection.name} aria-label="段落名稱" /><button className="rounded-[9px] border-0 bg-accent px-3 text-white">儲存</button></form>}
+                {selectedSection && <button className="min-h-10 border-0 bg-transparent text-[.8rem] text-[#a12e22]" onClick={() => void removeSelectedSection()}>刪除段落</button>}
               </div>
-              {!enteredIntervalValid && <p className="audio-inline-error" role="alert">請輸入 0 ≤ A &lt; B ≤ 音源長度的有效時間（秒數或 mm:ss.xx）。</p>}
-              <div className="audio-section-list" aria-label="已儲存段落">
-                {sections.map((section) => <button key={section.id} className={`audio-section-chip${section.id === selectedSectionId ? ' selected' : ''}`} onClick={() => chooseSection(section)}><strong>{section.name}</strong><span>{formatTime(section.start)}–{formatTime(section.end)}</span></button>)}
-                {sections.length === 0 && !draft && <p className="audio-no-sections">拖曳波形框選段落，儲存後即可快速選取。</p>}
+              {!enteredIntervalValid && <p className="text-[.78rem] text-[#a12e22]" role="alert">請輸入 0 ≤ A &lt; B ≤ 音源長度的有效時間（秒數或 mm:ss.xx）。</p>}
+              <div className="mt-4 flex flex-wrap gap-2" aria-label="已儲存段落">
+                {sections.map((section) => <button key={section.id} className={`grid min-h-[54px] justify-items-start gap-1 rounded-[11px] border px-3 py-2 text-left ${section.id === selectedSectionId ? 'border-accent bg-[#fff5f0]' : 'border-border bg-[#fffdf9] text-[#33353a]'}`} onClick={() => chooseSection(section)}><strong>{section.name}</strong><span className="text-[.72rem] tabular-nums text-muted">{formatTime(section.start)}–{formatTime(section.end)}</span></button>)}
+                {sections.length === 0 && !draft && <p className="text-[.82rem] leading-[1.55] text-muted">拖曳波形框選段落，儲存後即可快速選取。</p>}
               </div>
             </div>
           </>}

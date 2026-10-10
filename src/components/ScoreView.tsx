@@ -135,8 +135,8 @@ export function ScoreView({
   }
 
   return (
-    <section className="score-card" aria-label="節奏樂譜">
-      {error ? <p role="alert">{error}</p> : <div className="score" ref={hostRef} onClick={handleScoreClick} />}
+    <section className="h-full overflow-hidden rounded-[20px] bg-white p-2 shadow-[0_14px_50px_rgba(55,46,37,0.09)] max-sm:rounded-2xl" aria-label="節奏樂譜">
+      {error ? <p role="alert">{error}</p> : <div className="h-full min-h-0 overflow-y-auto overscroll-contain scroll-pt-6 pt-4" ref={hostRef} onClick={handleScoreClick} />}
     </section>
   )
 }
