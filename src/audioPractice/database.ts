@@ -6,6 +6,7 @@ export type PracticeSong = {
   fileName: string
   audio: Blob
   duration: number
+  playbackRate?: number
   createdAt: number
 }
 

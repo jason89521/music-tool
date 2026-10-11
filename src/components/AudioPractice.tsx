@@ -46,8 +46,10 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
   const sectionsRef = useRef(sections)
   const selectedSectionRef = useRef(selectedSectionId)
   const loopRef = useRef(loop)
+  const playbackRateRef = useRef(1)
   const lastPreferenceWriteRef = useRef(0)
   const selectedSong = songs.find((song) => song.id === selectedSongId)
+  const playbackRate = selectedSong?.playbackRate ?? 1
   const selectedSection = sections.find((section) => section.id === selectedSectionId)
   const activeInterval = draft
     ? { start: draft.start, end: draft.end }
@@ -157,9 +159,12 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
       plugins: [regions],
     })
     waveSurferRef.current = waveSurfer
+    playbackRateRef.current = selectedSong.playbackRate ?? 1
+    waveSurfer.setPlaybackRate(selectedSong.playbackRate ?? 1, true)
     regionsRef.current = regions
     waveSurfer.on('ready', () => {
       if (cancelled) return
+      waveSurfer.setPlaybackRate(playbackRateRef.current, true)
       for (const section of sections.filter((item) => item.songId === selectedSongId)) {
         regions.addRegion({
           id: section.id,
@@ -248,6 +253,17 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
   }, [selectedSongId])
 
   useEffect(() => () => waveSurferRef.current?.pause(), [])
+
+  const changePlaybackRate = (rate: number) => {
+    if (!selectedSong) return
+    playbackRateRef.current = rate
+    waveSurferRef.current?.setPlaybackRate(rate, true)
+    setSongs((current) => current.map((song) => song.id === selectedSong.id
+      ? { ...song, playbackRate: rate }
+      : song))
+    void audioPracticeDb.songs.update(selectedSong.id, { playbackRate: rate })
+      .catch(() => setError('播放速度無法儲存在本機，重新開啟後可能恢復原本設定。'))
+  }
 
   const importFile = async (file?: File) => {
     if (!file) return
@@ -440,6 +456,7 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
               <span className="text-[.78rem] tabular-nums text-muted">{formatTime(selectedSong.duration)}</span>
               <button className={`min-h-11 whitespace-nowrap rounded-[11px] border px-[10px] max-[760px]:col-span-full max-[760px]:min-h-[38px] ${loop ? 'border-accent text-accent-dark' : 'border-[#d8d0c4] text-[#33353a]'}`} aria-pressed={loop} onClick={() => setLoop((value) => !value)}>↻ <span className="text-[.78rem]">循環</span></button>
             </div>
+            <PlaybackSpeedControl rate={playbackRate} onChange={changePlaybackRate} />
             <div className="mt-7 border-t border-border pt-5">
               <div className="mb-[14px] flex items-center justify-between gap-4"><div><h3 className="m-0 text-base">練習段落</h3><p className="mt-[5px] mb-0 text-[.78rem] text-muted">在波形上拖曳，或編輯 A、B 時間。</p></div>{selectedSection && <button className="shrink-0 border-0 bg-transparent text-[.82rem] font-bold text-accent-dark underline underline-offset-[3px]" onClick={() => setRenameSection((value) => !value)}>{renameSection ? '取消' : '重新命名'}</button>}</div>
               <div className="flex flex-wrap items-end gap-[10px]">
@@ -460,5 +477,33 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
         </section>
       </section>
     </main>
+  )
+}
+
+function PlaybackSpeedControl({ rate, onChange }: { rate: number; onChange: (rate: number) => void }) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-[#fffdf9] px-3 py-2">
+      <label htmlFor="audio-playback-rate" className="text-[.82rem] font-bold text-[#655f58]">播放速度</label>
+      <output htmlFor="audio-playback-rate" className="min-w-[4.5rem] text-[.82rem] tabular-nums text-accent-dark">{rate.toFixed(2)} 倍</output>
+      <input
+        id="audio-playback-rate"
+        className="min-h-11 min-w-[100px] flex-1 accent-accent"
+        type="range"
+        min="0.5"
+        max="1"
+        step="0.05"
+        value={rate}
+        aria-valuetext={`${rate.toFixed(2)} 倍，維持原本音高`}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <button
+        className="min-h-11 rounded-[9px] border border-[#d8d0c4] px-3 text-[.82rem] text-[#33353a] disabled:opacity-50"
+        disabled={rate === 1}
+        onClick={() => onChange(1)}
+      >
+        恢復原速
+      </button>
+      <p className="m-0 w-full text-xs text-muted">變速時維持原本音高，時間與段落位置以原曲為準。</p>
+    </div>
   )
 }
