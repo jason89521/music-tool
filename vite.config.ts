@@ -13,7 +13,7 @@ export default defineConfig(() => {
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['audio/*.wav'],
+      includeAssets: ['audio/*.wav', 'pitch-licenses.txt'],
       manifest: {
         name: 'Music Tool',
         short_name: 'Music Tool',

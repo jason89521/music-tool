@@ -10,3 +10,7 @@
 - Processed file SHA-256: `a660de590c3af89db082e849159a36086296ad4c5415749cba1b77c80c9b4068`
 
 The original full-quality WAV requires a Freesound account to download. Replace `public/audio/snare.wav` with a processed copy of the original WAV when available, then update this notice and hash.
+
+## Pitchy 4.1.0 and fft.js 4.0.4
+
+The pitch analysis worker bundles [Pitchy](https://github.com/ianprime0509/pitchy) and its [fft.js](https://github.com/indutny/fft.js) dependency under the MIT License. See [copyright and license terms](./public/pitch-licenses.txt).

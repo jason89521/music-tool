@@ -9,7 +9,8 @@
     "build:pages": "tsc -b && MUSIC_TOOL_BASE=/music-tool/ vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "benchmark:pitch": "vitest run --config vitest.pitch.config.ts --disableConsoleIntercept"
   },
   "keywords": [],
   "author": "",
@@ -18,11 +19,14 @@
   "dependencies": {
     "dexie": "^4.4.6",
     "opensheetmusicdisplay": "^2.1.2",
+    "pitchy": "4.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "wavesurfer.js": "^8.0.2"
   },
   "devDependencies": {
+    "@audio/pitch-pyin": "2.1.0",
+    "@audio/pitch-yin": "1.1.0",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",

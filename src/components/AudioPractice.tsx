@@ -12,6 +12,8 @@ import {
   type PracticeSong,
 } from '../audioPractice/database'
 import { formatTime, isValidInterval, parseTime } from '../audioPractice/time'
+import { ANALYSIS_SAMPLE_RATE, type PitchMode } from '../audioPractice/pitch/profiles'
+import { PitchAnalysis } from './PitchAnalysis'
 
 const ACCEPTED_AUDIO = new Set(['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/wave'])
 
@@ -27,6 +29,7 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
   const [songs, setSongs] = useState<PracticeSong[]>([])
   const [sections, setSections] = useState<PracticeSection[]>([])
   const [selectedSongId, setSelectedSongId] = useState<string>()
+  const [readySongId, setReadySongId] = useState<string>()
   const [selectedSectionId, setSelectedSectionId] = useState<string>()
   const [draft, setDraft] = useState<{ id: string; start: number; end: number }>()
   const [startText, setStartText] = useState('00:00.00')
@@ -44,6 +47,7 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
   const regionsRef = useRef<ReturnType<typeof RegionsPlugin.create> | undefined>(undefined)
   const activeRegionRef = useRef<Region | undefined>(undefined)
   const sectionsRef = useRef(sections)
+  const draftRef = useRef(draft)
   const selectedSectionRef = useRef(selectedSectionId)
   const loopRef = useRef(loop)
   const playbackRateRef = useRef(1)
@@ -56,6 +60,8 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
     : selectedSection
       ? { start: selectedSection.start, end: selectedSection.end }
       : selectedSong ? { start: 0, end: selectedSong.duration } : undefined
+  const getDecodedAudio = useCallback(() => waveSurferRef.current?.getDecodedData() ?? null, [])
+  const seek = useCallback((time: number) => waveSurferRef.current?.setTime(time), [])
   const enteredStart = parseTime(startText)
   const enteredEnd = parseTime(endText)
   const enteredIntervalValid = selectedSong && enteredStart !== undefined && enteredEnd !== undefined
@@ -77,7 +83,8 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
     sectionsRef.current = sections
     selectedSectionRef.current = selectedSectionId
     loopRef.current = loop
-  }, [loop, sections, selectedSectionId])
+    draftRef.current = draft
+  }, [draft, loop, sections, selectedSectionId])
 
   const refreshSongs = useCallback(async () => {
     const [nextSongs, preference] = await Promise.all([
@@ -143,11 +150,11 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
   useEffect(() => {
     if (!selectedSongId || !selectedSong || !waveformRef.current) return
     let cancelled = false
-    const audioUrl = URL.createObjectURL(selectedSong.audio)
     const regions = RegionsPlugin.create()
     const waveSurfer = WaveSurfer.create({
       container: waveformRef.current,
       height: 170,
+      sampleRate: ANALYSIS_SAMPLE_RATE,
       waveColor: '#c7b8a7',
       progressColor: '#d55435',
       cursorColor: '#171a21',
@@ -182,6 +189,7 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
           waveSurfer.setTime(Math.min(preference.position, waveSurfer.getDuration()))
         }
       })
+      setReadySongId(selectedSongId)
       regions.enableDragSelection({ color: 'rgba(213, 84, 53, 0.27)', drag: true, resize: true }, 3)
     })
     const onRegionCreated = (region: Region) => {
@@ -221,7 +229,7 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
       }
     })
     waveSurfer.on('audioprocess', (time) => {
-      const activeSection = sectionsRef.current.find((section) => section.id === selectedSectionRef.current)
+      const activeSection = draftRef.current ?? sectionsRef.current.find((section) => section.id === selectedSectionRef.current)
       if (loopRef.current && activeSection && time >= activeSection.end) {
         waveSurfer.setTime(activeSection.start)
       }
@@ -238,14 +246,14 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
     })
     waveSurfer.on('finish', () => setPlaying(false))
     waveSurfer.on('error', () => setError('無法解碼或播放此音檔。請確認它是瀏覽器支援的 MP3、M4A 或 WAV。'))
-    void waveSurfer.load(audioUrl).catch(() => {
+    void waveSurfer.loadBlob(selectedSong.audio, undefined, selectedSong.duration).catch(() => {
       if (!cancelled) setError('無法解碼此音檔。請確認檔案未損毀，且瀏覽器支援其編碼。')
     })
     return () => {
       cancelled = true
       waveSurfer.pause()
       waveSurfer.destroy()
-      URL.revokeObjectURL(audioUrl)
+      activeRegionRef.current = undefined
       if (waveSurferRef.current === waveSurfer) waveSurferRef.current = undefined
     }
     // Recreate the waveform when the song changes; section and preference changes are read through explicit actions.
@@ -265,6 +273,15 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
       .catch(() => setError('播放速度無法儲存在本機，重新開啟後可能恢復原本設定。'))
   }
 
+  const changePitchMode = (pitchMode: PitchMode) => {
+    if (!selectedSong) return
+    setSongs((current) => current.map((song) => song.id === selectedSong.id
+      ? { ...song, pitchMode }
+      : song))
+    void audioPracticeDb.songs.update(selectedSong.id, { pitchMode })
+      .catch(() => setError('音高辨識模式無法儲存在本機。'))
+  }
+
   const importFile = async (file?: File) => {
     if (!file) return
     setError(undefined)
@@ -274,7 +291,7 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
     }
     setBusy(true)
     try {
-      const context = new AudioContext()
+      const context = new AudioContext({ sampleRate: ANALYSIS_SAMPLE_RATE })
       let duration: number
       try {
         duration = (await context.decodeAudioData(await file.arrayBuffer())).duration
@@ -292,6 +309,8 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
       }
       await addSong(song)
       setSongs((current) => [song, ...current])
+      setReadySongId(undefined)
+      setDraft(undefined)
       setSelectedSongId(song.id)
       setSelectedSectionId(undefined)
       setPosition(0)
@@ -371,6 +390,8 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
       const next = songs.filter((item) => item.id !== song.id)
       setSongs(next)
       if (song.id === selectedSongId) {
+        setReadySongId(undefined)
+        setDraft(undefined)
         setSelectedSongId(next[0]?.id)
         setSelectedSectionId(undefined)
       }
@@ -384,9 +405,8 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
     if (!title) return
     try {
       if (kind === 'song' && selectedSong) {
-        const updated = { ...selectedSong, title }
-        await audioPracticeDb.songs.put(updated)
-        setSongs((current) => current.map((song) => song.id === updated.id ? updated : song))
+        await audioPracticeDb.songs.update(selectedSong.id, { title })
+        setSongs((current) => current.map((song) => song.id === selectedSong.id ? { ...song, title } : song))
       } else if (kind === 'section' && selectedSection) {
         const updated = { ...selectedSection, name: title, updatedAt: Date.now() }
         await saveSection(updated)
@@ -420,6 +440,9 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
             {songs.map((song) => (
               <div key={song.id} className={`grid grid-cols-[minmax(0,1fr)_34px] items-center gap-1 rounded-xl border p-[5px] ${song.id === selectedSongId ? 'border-[#e4b6a8] bg-[#fff8f4]' : 'border-transparent'}`}>
                 <button className="grid min-w-0 gap-[5px] border-0 bg-transparent p-2 text-left text-[#33353a]" onClick={() => {
+                  if (song.id === selectedSongId) return
+                  setReadySongId(undefined)
+                  setDraft(undefined)
                   setSelectedSongId(song.id)
                   setSelectedSectionId(undefined)
                   setPosition(0)
@@ -447,16 +470,29 @@ export function AudioPractice({ onHome }: { onHome: () => void }) {
                 if (!waveSurfer || !enteredIntervalValid) return
                 if (playing) waveSurfer.pause()
                 else {
-                  if (loop && selectedSection) waveSurfer.setTime(selectedSection.start)
+                  const section = draft ?? selectedSection
+                  if (loop && section) waveSurfer.setTime(section.start)
                   void waveSurfer.play()
                 }
               }}>{playing ? 'Ⅱ' : '▶'}</button>
               <span className="text-[.78rem] tabular-nums text-muted">{formatTime(position)}</span>
-              <input className="w-full accent-accent" type="range" min="0" max={selectedSong.duration} step="0.01" value={Math.min(position, selectedSong.duration)} aria-label="播放位置" onChange={(event) => waveSurferRef.current?.setTime(Number(event.target.value))} />
+              <input className="w-full accent-accent" type="range" min="0" max={selectedSong.duration} step="0.01" value={Math.min(position, selectedSong.duration)} aria-label="播放位置" onChange={(event) => seek(Number(event.target.value))} />
               <span className="text-[.78rem] tabular-nums text-muted">{formatTime(selectedSong.duration)}</span>
               <button className={`min-h-11 whitespace-nowrap rounded-[11px] border px-[10px] max-[760px]:col-span-full max-[760px]:min-h-[38px] ${loop ? 'border-accent text-accent-dark' : 'border-[#d8d0c4] text-[#33353a]'}`} aria-pressed={loop} onClick={() => setLoop((value) => !value)}>↻ <span className="text-[.78rem]">循環</span></button>
             </div>
             <PlaybackSpeedControl rate={playbackRate} onChange={changePlaybackRate} />
+            {readySongId === selectedSong.id && <PitchAnalysis
+              key={selectedSong.id}
+              songId={selectedSong.id}
+              mode={selectedSong.pitchMode ?? 'general'}
+              onModeChange={changePitchMode}
+              getAudio={getDecodedAudio}
+              duration={selectedSong.duration}
+              position={position}
+              playing={playing}
+              interval={(draft || selectedSection) && activeInterval ? { ...activeInterval, enabled: loop } : undefined}
+              onSeek={seek}
+            />}
             <div className="mt-7 border-t border-border pt-5">
               <div className="mb-[14px] flex items-center justify-between gap-4"><div><h3 className="m-0 text-base">練習段落</h3><p className="mt-[5px] mb-0 text-[.78rem] text-muted">在波形上拖曳，或編輯 A、B 時間。</p></div>{selectedSection && <button className="shrink-0 border-0 bg-transparent text-[.82rem] font-bold text-accent-dark underline underline-offset-[3px]" onClick={() => setRenameSection((value) => !value)}>{renameSection ? '取消' : '重新命名'}</button>}</div>
               <div className="flex flex-wrap items-end gap-[10px]">

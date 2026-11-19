@@ -1,4 +1,6 @@
 import Dexie, { type Table } from 'dexie'
+import type { PitchMode } from './pitch/profiles'
+import type { PitchTrack } from './pitch/types'
 
 export type PracticeSong = {
   id: string
@@ -7,6 +9,7 @@ export type PracticeSong = {
   audio: Blob
   duration: number
   playbackRate?: number
+  pitchMode?: PitchMode
   createdAt: number
 }
 
@@ -26,10 +29,13 @@ export type PracticePreference = {
   position?: number
 }
 
+export type CachedPitchTrack = { id: string; songId: string; track: PitchTrack }
+
 class AudioPracticeDatabase extends Dexie {
   songs!: Table<PracticeSong, string>
   sections!: Table<PracticeSection, string>
   preferences!: Table<PracticePreference, string>
+  pitchTracks!: Table<CachedPitchTrack, string>
 
   constructor() {
     super('music-tool:audio-practice:v1')
@@ -38,6 +44,7 @@ class AudioPracticeDatabase extends Dexie {
       sections: 'id, songId, updatedAt',
       preferences: 'key',
     })
+    this.version(2).stores({ pitchTracks: 'id, songId' })
   }
 }
 
@@ -48,9 +55,11 @@ export async function addSong(song: PracticeSong): Promise<void> {
 }
 
 export async function deleteSong(songId: string): Promise<void> {
-  await audioPracticeDb.transaction('rw', audioPracticeDb.songs, audioPracticeDb.sections, async () => {
-    await audioPracticeDb.songs.delete(songId)
-    await audioPracticeDb.sections.where('songId').equals(songId).delete()
+  const { songs, sections, pitchTracks } = audioPracticeDb
+  await audioPracticeDb.transaction('rw', songs, sections, pitchTracks, async () => {
+    await songs.delete(songId)
+    await sections.where('songId').equals(songId).delete()
+    await pitchTracks.where('songId').equals(songId).delete()
   })
 }
 
@@ -64,4 +73,12 @@ export async function deleteSection(sectionId: string): Promise<void> {
 
 export async function savePreference(preference: PracticePreference): Promise<void> {
   await audioPracticeDb.preferences.put(preference)
+}
+
+export async function cachePitchTrack(entry: CachedPitchTrack, signal: AbortSignal): Promise<void> {
+  const { songs, pitchTracks } = audioPracticeDb
+  await audioPracticeDb.transaction('rw', songs, pitchTracks, async () => {
+    const song = await songs.where('id').equals(entry.songId).count()
+    if (song && !signal.aborted) await pitchTracks.put(entry)
+  })
 }

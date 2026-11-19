@@ -21,7 +21,8 @@ vi.mock('wavesurfer.js', () => ({
         mockAudio.events.set(name, callbacks)
         return () => undefined
       },
-      load: async () => {
+      getDecodedData: () => null,
+      loadBlob: async () => {
         mockAudio.events.get('ready')?.forEach((callback) => callback())
       },
       setPlaybackRate: mockAudio.setPlaybackRate,
@@ -92,8 +93,6 @@ describe('audio practice sections', () => {
     }
     await audioPracticeDb.songs.add(song)
     await audioPracticeDb.sections.add(section)
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:practice-audio')
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     const { AudioPractice } = await import('./AudioPractice')
 
     render(<AudioPractice onHome={() => undefined} />)
@@ -126,8 +125,6 @@ describe('audio practice speed', () => {
     await audioPracticeDb.sections.add({
       id: 'verse', songId: song.id, name: 'Verse', start: 3, end: 8, updatedAt: 1,
     })
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:practice-audio')
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
   }
 
   it('changes speed during playback without pausing or seeking and keeps original loop boundaries', async () => {

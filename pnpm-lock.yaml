@@ -14,6 +14,9 @@ importers:
       opensheetmusicdisplay:
         specifier: ^2.1.2
         version: 2.2.0
+      pitchy:
+        specifier: 4.1.0
+        version: 4.1.0
       react:
         specifier: ^19.2.8
         version: 19.3.0
@@ -24,6 +27,12 @@ importers:
         specifier: ^8.0.2
         version: 8.0.2
     devDependencies:
+      '@audio/pitch-pyin':
+        specifier: 2.1.0
+        version: 2.1.0
+      '@audio/pitch-yin':
+        specifier: 1.1.0
+        version: 1.1.0
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(jiti@2.7.0))
@@ -100,6 +109,14 @@ packages:
   '@asamuzakjp/dom-selector@9.2.4':
     resolution: {integrity: sha512-YnVzxDxLaqL0t7Q4wfcgHZjg55Wm6y5EaO7Bhu3q9J7wq/8iw3PhsnWiOQhYekx4VexnbkgWpTT6n+QIV7kczw==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
+
+  '@audio/pitch-pyin@2.1.0':
+    resolution: {integrity: sha512-3zrytphqDnqHvPnOjH3/Aha864/qSMBR1YEZXm05wzOPyuK4ajEsiGGRFUEoLKxeettqpAFAesyq/uqY5BwXZg==}
+    engines: {node: '>=18'}
+
+  '@audio/pitch-yin@1.1.0':
+    resolution: {integrity: sha512-OpAk6r0RVIU8kzy0BXdSwA+6jg8dwxHbNGDx7G2LilJQ88kRKuzL2KMSqMGqkVXARkh4BgRnXYXsRGY/TXWT5g==}
+    engines: {node: '>=18'}
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -1739,6 +1756,9 @@ packages:
       picomatch:
         optional: true
 
+  fft.js@4.0.4:
+    resolution: {integrity: sha512-f9c00hphOgeQTlDyavwTtu6RiK8AIFjD6+jvXkNkpeQ7rirK3uFWVpalkoS4LAwbdX7mfZ8aoBfFVQX1Re/8aw==}
+
   file-entry-cache@11.1.5:
     resolution: {integrity: sha512-+PFTHITI08JIGhnNpGNI8T8inUpgZfk3GNEqfT9R2zZV2iFXg3CvqzSl/uEhs7TSGujYRELEANyDvS8Fj7+S7Q==}
 
@@ -1765,6 +1785,9 @@ packages:
   foreground-child@3.3.1:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
+
+  fourier-transform@2.7.0:
+    resolution: {integrity: sha512-qsx320DwhmoZ114FwgM+Zu2MspWTOMuGVvIvkknhn+Prn049S6uwfdQq00yf8piBXzt9rwb5gmf/JURXaXr8qQ==}
 
   fs-constants@1.0.0:
     resolution: {integrity: sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==}
@@ -2438,6 +2461,9 @@ packages:
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
+
+  pitchy@4.1.0:
+    resolution: {integrity: sha512-E8nQ8svBroGSMcc3qu2KvLHIuRYAIfrSkqDKWhjgj3WizseqWQXjQ+Q5t4g1CU73R5Euk+DAinyNFDK+KZw7zA==}
 
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
@@ -3153,6 +3179,12 @@ snapshots:
       css-tree: 3.2.1
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.3
+
+  '@audio/pitch-pyin@2.1.0':
+    dependencies:
+      fourier-transform: 2.7.0
+
+  '@audio/pitch-yin@1.1.0': {}
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -4895,6 +4927,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
+  fft.js@4.0.4: {}
+
   file-entry-cache@11.1.5:
     dependencies:
       flat-cache: 6.1.23
@@ -4927,6 +4961,8 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
+
+  fourier-transform@2.7.0: {}
 
   fs-constants@1.0.0:
     optional: true
@@ -5568,6 +5604,10 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
+
+  pitchy@4.1.0:
+    dependencies:
+      fft.js: 4.0.4
 
   possible-typed-array-names@1.1.0: {}
 
