@@ -1,5 +1,7 @@
 export const TICKS_PER_QUARTER = 24
 export const TICKS_PER_MEASURE = TICKS_PER_QUARTER * 4
+export const MIN_BPM = 20
+export const MAX_BPM = 400
 
 export type NoteValue = 'quarter' | 'eighth' | 'sixteenth'
 export type RhythmMaterial = NoteValue | 'eighthTriplet' | 'quarterTriplet'
@@ -57,7 +59,7 @@ export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
 }
 
 export function isValidBpm(value: number): boolean {
-  return Number.isInteger(value) && value >= 20 && value <= 400
+  return Number.isInteger(value) && value >= MIN_BPM && value <= MAX_BPM
 }
 
 export function eventKey(event: RhythmEvent): string {

@@ -15,6 +15,7 @@ import { loadState, saveState } from './storage'
 import { shouldShowInstallBanner, usePwaInstall } from './pwaInstall'
 import type { ScorePlaybackTarget } from './score/toMusicXml'
 import { ChordReference } from './components/ChordReference'
+import { Metronome } from './components/Metronome'
 
 const ScoreView = lazy(() => import('./components/ScoreView').then((module) => ({ default: module.ScoreView })))
 const AudioPractice = lazy(() => import('./components/AudioPractice').then((module) => ({ default: module.AudioPractice })))
@@ -49,7 +50,9 @@ export default function App() {
 
   return (
     <>
-      {pathname === '/rhythm-practice'
+      {pathname === '/metronome' ? (
+        <Metronome onHome={() => navigate('/')} />
+      ) : pathname === '/rhythm-practice'
         ? <RhythmPractice onHome={() => navigate('/')} installButton={installButton} />
         : pathname === '/chords'
           ? <ChordReference onHome={() => navigate('/')} />
@@ -66,6 +69,14 @@ export default function App() {
               <p className="text-[1.15rem] text-[#5e6065]">把每一次練習，變成更清楚、更專注的進步。</p>
             </header>
             <section className="grid grid-cols-[repeat(auto-fit,minmax(290px,1fr))] gap-[18px]" aria-label="音樂工具">
+              <button className="grid min-h-[148px] grid-cols-[auto_1fr_auto] items-center gap-[18px] rounded-[22px] border border-border bg-white/70 p-6 text-left text-inherit shadow-[0_15px_45px_rgba(62,50,37,0.07)] transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_20px_55px_rgba(62,50,37,0.13)]" onClick={() => navigate('/metronome')}>
+                <span className="grid size-16 place-items-center rounded-[18px] bg-accent font-mono text-[1.25rem] font-bold text-white" aria-hidden="true">4/4</span>
+                <span>
+                  <strong className="mb-1 block text-xl">節拍器</strong>
+                  <small className="block text-[#6b6c70]">自訂每拍聲音與速度</small>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
               <button className="grid min-h-[148px] grid-cols-[auto_1fr_auto] items-center gap-[18px] rounded-[22px] border border-border bg-white/70 p-6 text-left text-inherit shadow-[0_15px_45px_rgba(62,50,37,0.07)] transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_20px_55px_rgba(62,50,37,0.13)]" onClick={() => navigate('/rhythm-practice')}>
                 <span className="grid size-16 place-items-center rounded-[18px] bg-accent text-[2rem] text-white" aria-hidden="true">♩</span>
                 <span>

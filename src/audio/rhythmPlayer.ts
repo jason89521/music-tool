@@ -1,4 +1,5 @@
 import { TICKS_PER_MEASURE, TICKS_PER_QUARTER, type PlaybackSettings, type RhythmExercise } from '../domain/rhythm'
+import { scheduleClick } from './scheduleClick'
 
 export type PlaybackSnapshot = {
   phase: 'countIn' | 'exercise' | 'ended'
@@ -144,15 +145,7 @@ export class RhythmPlayer {
 
   private scheduleClick(when: number, accented: boolean, volume: number): void {
     if (!this.context) return
-    const oscillator = this.context.createOscillator()
-    const gain = this.context.createGain()
-    oscillator.frequency.value = accented ? 1320 : 880
-    gain.gain.setValueAtTime(volume * 0.25, when)
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.04)
-    oscillator.connect(gain).connect(this.context.destination)
-    oscillator.start(when)
-    oscillator.stop(when + 0.05)
-    this.scheduled.push(oscillator)
+    this.scheduled.push(scheduleClick(this.context, when, accented, volume))
   }
 
   private cancelScheduled(): void {
