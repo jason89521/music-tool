@@ -27,7 +27,9 @@ const NEXT_BEAT_SOUND: Record<BeatSound, BeatSound> = {
 }
 
 const HOLD_DURATION_MS = 450
-const HOLD_REPEAT_INTERVAL_MS = 150
+const FIRST_REPEAT_DELAY_MS = 1000
+const REPEAT_DELAY_DECREMENT_MS = 250
+const MIN_REPEAT_DELAY_MS = 250
 
 export function Metronome({ onHome }: { onHome: () => void }) {
   const [player] = useState(() => new MetronomePlayer())
@@ -91,7 +93,7 @@ export function Metronome({ onHome }: { onHome: () => void }) {
           </div>
           <TempoButton direction={1} disabled={bpm >= MAX_BPM} onChange={changeBpm} />
         </div>
-        <p className="mt-1 text-center text-sm text-muted" id="tempo-hint">短按 ±1，長按連續 ±10</p>
+        <p className="mt-1 text-center text-sm text-muted" id="tempo-hint">短按 ±1，長按 ±10，持續按住會加快</p>
 
         <section className="mt-6 border-t border-border pt-5" aria-labelledby="beat-sounds-title">
           <h2 className="mb-3 text-sm font-semibold text-muted" id="beat-sounds-title">點一下切換每拍聲音</h2>
@@ -147,10 +149,12 @@ function TempoButton({ direction, disabled, onChange }: {
     if (!event.isPrimary || event.button !== 0) return
     cancelHold()
     didHold.current = false
+    let repeatDelay = FIRST_REPEAT_DELAY_MS
     const repeatChange = () => {
       didHold.current = true
       onChange(direction * 10)
-      holdTimer.current = window.setTimeout(repeatChange, HOLD_REPEAT_INTERVAL_MS)
+      holdTimer.current = window.setTimeout(repeatChange, repeatDelay)
+      repeatDelay = Math.max(MIN_REPEAT_DELAY_MS, repeatDelay - REPEAT_DELAY_DECREMENT_MS)
     }
     holdTimer.current = window.setTimeout(repeatChange, HOLD_DURATION_MS)
   }

@@ -34,11 +34,11 @@ afterEach(() => {
 
 const touchPointer = { button: 0, pointerType: 'touch', isPrimary: true }
 
-it('changes tempo by one on tap and repeats ten-point steps on hold until release or cancellation', () => {
+it('changes tempo by one on tap and by ten when released before the first repeat', () => {
   render(<Metronome onHome={vi.fn()} />)
   const tempo = screen.getByLabelText('速度')
   const increase = screen.getByRole('button', { name: '加快速度' })
-  const decrease = screen.getByRole('button', { name: '放慢速度' })
+
   fireEvent.pointerDown(increase, touchPointer)
   advanceClock(100)
   fireEvent.pointerUp(increase, touchPointer)
@@ -46,24 +46,30 @@ it('changes tempo by one on tap and repeats ten-point steps on hold until releas
   advanceClock(500)
   expect(tempo.textContent).toBe('121')
 
-  fireEvent.pointerDown(decrease, touchPointer)
-  advanceClock(449)
-  expect(tempo.textContent).toBe('121')
-  advanceClock(1)
-  expect(tempo.textContent).toBe('111')
-  advanceClock(300)
-  expect(tempo.textContent).toBe('91')
-  fireEvent.pointerUp(decrease, touchPointer)
-  fireEvent.click(decrease, { detail: 1 })
-  advanceClock(500)
-  expect(tempo.textContent).toBe('91')
-
   fireEvent.pointerDown(increase, touchPointer)
-  advanceClock(600)
-  expect(tempo.textContent).toBe('111')
-  fireEvent.pointerCancel(increase, touchPointer)
-  advanceClock(500)
-  expect(tempo.textContent).toBe('111')
+  advanceClock(1000)
+  fireEvent.pointerUp(increase, touchPointer)
+  fireEvent.click(increase, { detail: 1 })
+  advanceClock(1000)
+  expect(tempo.textContent).toBe('131')
+})
+
+it('shortens the delay between repeats to a minimum of 250 ms and stops on cancellation', () => {
+  render(<Metronome onHome={vi.fn()} />)
+  const tempo = screen.getByLabelText('速度')
+  const decrease = screen.getByRole('button', { name: '放慢速度' })
+
+  fireEvent.pointerDown(decrease, touchPointer)
+  for (const [delay, expectedBpm] of [[450, 110], [1000, 100], [750, 90], [500, 80], [250, 70], [250, 60]]) {
+    advanceClock(delay - 1)
+    expect(tempo.textContent).toBe(String(expectedBpm + 10))
+    advanceClock(1)
+    expect(tempo.textContent).toBe(String(expectedBpm))
+  }
+
+  fireEvent.pointerCancel(decrease, touchPointer)
+  advanceClock(1000)
+  expect(tempo.textContent).toBe('60')
 })
 
 it('stops the hold timer when the tempo reaches its limit', () => {
@@ -72,7 +78,7 @@ it('stops the hold timer when the tempo reaches its limit', () => {
   const decrease = screen.getByRole<HTMLButtonElement>('button', { name: '放慢速度' })
 
   fireEvent.pointerDown(decrease, touchPointer)
-  advanceClock(1800)
+  advanceClock(4200)
   expect(tempo.textContent).toBe('20')
   expect(decrease.disabled).toBe(true)
   expect(vi.getTimerCount()).toBe(0)
